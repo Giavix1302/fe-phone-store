@@ -1,0 +1,128 @@
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+
+/**
+ * Perform login request.
+ * @param {{ email: string; password: string }} payload
+ * @returns {Promise<{ access_token: string; user: Record<string, any> }>}
+ */
+export const login = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message ||
+      "Không thể đăng nhập. Vui lòng kiểm tra lại thông tin của bạn.";
+    throw new Error(message);
+  }
+
+  if (!result?.data) {
+    throw new Error("Phản hồi không hợp lệ từ máy chủ.");
+  }
+
+  return result.data;
+};
+
+/**
+ * Perform signup request.
+ * @param {{ email: string; password: string; full_name: string; phone: string; address?: string }} payload
+ * @returns {Promise<{ email: string; verification_required: boolean }>}
+ */
+export const signup = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message ||
+      "Không thể đăng ký. Vui lòng kiểm tra lại thông tin của bạn.";
+    throw new Error(message);
+  }
+
+  if (!result?.data) {
+    throw new Error("Phản hồi không hợp lệ từ máy chủ.");
+  }
+
+  return result.data;
+};
+
+/**
+ * Verify email with OTP code.
+ * @param {{ email: string; verification_code: string }} payload
+ */
+export const verifyEmail = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message = result?.message || "Mã xác thực không hợp lệ.";
+    throw new Error(message);
+  }
+
+  return result.data;
+};
+
+/**
+ * Resend verification code to email.
+ * @param {{ email: string }} payload
+ */
+export const resendVerification = async (payload) => {
+  const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể gửi lại mã. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result.data;
+};
+
+/**
+ * Call logout endpoint (best effort, errors ignored).
+ */
+export const logout = async () => {
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch (error) {
+    console.warn("Không thể gọi API logout:", error);
+  }
+};
+
+export const parseStoredUser = () => {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};

@@ -1,17 +1,40 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { logout as logoutApi, parseStoredUser } from "../services/authApi";
+import { AUTH_CHANGED_EVENT, emitAuthChanged } from "../utils/authEvents";
 
 const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Mock user state - thực tế sẽ lấy từ context/redux
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => parseStoredUser());
 
-  const handleLogout = () => {
-    setUser(null);
+  const syncUserFromStorage = useCallback(() => {
+    setUser(parseStoredUser());
+  }, []);
+
+  useEffect(() => {
+    const handleStorage = (event) => {
+      if (event.key === "user" || event.key === "token") {
+        syncUserFromStorage();
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener(AUTH_CHANGED_EVENT, syncUserFromStorage);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncUserFromStorage);
+    };
+  }, [syncUserFromStorage]);
+
+  const handleLogout = async () => {
+    await logoutApi();
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    emitAuthChanged();
     navigate("/");
   };
 
@@ -76,7 +99,7 @@ const Layout = () => {
                     to="/profile"
                     className="text-gray-600 hover:text-primary-100 font-medium"
                   >
-                    Xin chào, {user.name}
+                    Xin chào, {user?.full_name || user?.name || user?.email}
                   </Link>
                   <button
                     onClick={handleLogout}
