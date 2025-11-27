@@ -11,6 +11,7 @@ import ProductDetail from "../pages/ProductDetail";
 import Login from "../pages/Login";
 import { Cart } from "../pages/Cart";
 import Register from "../pages/Register";
+import VerifyEmail from "../pages/VerifyEmail";
 import PrivateRoute from "./PrivateRoute";
 import Profile from "../pages/Profile";
 import NotFound from "../pages/NotFound";
@@ -36,6 +37,7 @@ const AppRouter = () => {
           {/* Auth routes - không cần đăng nhập */}
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
 
           {/* Private routes - cần đăng nhập */}
           <Route
