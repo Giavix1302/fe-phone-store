@@ -126,3 +126,35 @@ export const parseStoredUser = () => {
     return null;
   }
 };
+
+/**
+ * Change password for authenticated user.
+ * @param {{ old_password: string; new_password: string }} payload
+ */
+export const changePassword = async (payload) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể đổi mật khẩu. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data ?? null;
+};
