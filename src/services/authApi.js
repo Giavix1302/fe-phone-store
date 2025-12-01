@@ -128,6 +128,70 @@ export const parseStoredUser = () => {
 };
 
 /**
+ * Lấy thông tin hồ sơ người dùng hiện tại.
+ * GET /auth/profile hoặc /users/me tuỳ BE
+ */
+export const fetchCurrentUserProfile = async () => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  }
+
+  // BE có 2 endpoint: /auth/profile và /users/me, ưu tiên /auth/profile
+  const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể lấy thông tin hồ sơ. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data;
+};
+
+/**
+ * Cập nhật thông tin hồ sơ người dùng hiện tại (full/partial).
+ * Sử dụng PATCH /users/me với body dạng UpdateProfileRequest.
+ * @param {{ full_name?: string; phone?: string; address?: string }} payload
+ */
+export const updateCurrentUserProfile = async (payload) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/users/me`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể cập nhật hồ sơ. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data;
+};
+
+/**
  * Change password for authenticated user.
  * @param {{ old_password: string; new_password: string }} payload
  */
@@ -199,3 +263,4 @@ export const uploadAvatar = async (file) => {
 
   return result?.data;
 };
+

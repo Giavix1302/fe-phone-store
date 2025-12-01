@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   changePassword,
   parseStoredUser,
   uploadAvatar,
+  fetchCurrentUserProfile,
+  updateCurrentUserProfile,
 } from "../services/authApi";
 
 const initialPasswordState = {
@@ -20,6 +22,23 @@ const Profile = () => {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    full_name: storedUser?.full_name || "",
+    phone: storedUser?.phone || "",
+    address: storedUser?.address || "",
+  });
+  const [profileSubmitting, setProfileSubmitting] = useState(false);
+  const [profileErrors, setProfileErrors] = useState({});
+
+  useEffect(() => {
+    // Đồng bộ form khi storedUser thay đổi (vd: sau khi login lại)
+    setProfileForm({
+      full_name: storedUser?.full_name || "",
+      phone: storedUser?.phone || "",
+      address: storedUser?.address || "",
+    });
+  }, [storedUser]);
 
   const displayName = useMemo(() => {
     return (
@@ -71,6 +90,105 @@ const Profile = () => {
       setAvatarPreview(null);
     } finally {
       setAvatarUploading(false);
+    }
+  };
+
+  const handleProfileFieldChange = (event) => {
+    const { name, value } = event.target;
+    setProfileForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (profileErrors[name]) {
+      setProfileErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateProfileForm = () => {
+    const errors = {};
+
+    if (!profileForm.full_name.trim()) {
+      errors.full_name = "Vui lòng nhập họ và tên.";
+    }
+
+    if (profileForm.phone && !/^[0-9+\-\s]{8,20}$/.test(profileForm.phone)) {
+      errors.phone = "Số điện thoại không hợp lệ.";
+    }
+
+    if (profileForm.address && profileForm.address.length < 5) {
+      errors.address = "Địa chỉ quá ngắn.";
+    }
+
+    return errors;
+  };
+
+  const handleToggleEditProfile = async () => {
+    // Nếu mở form lần đầu, thử fetch profile mới nhất từ server
+    if (!editingProfile) {
+      try {
+        const profile = await fetchCurrentUserProfile();
+        const updatedUser = {
+          ...(storedUser || {}),
+          ...profile,
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setStoredUser(updatedUser);
+      } catch (error) {
+        // Không chặn mở form, chỉ báo lỗi nhẹ
+        setStatus({
+          type: "error",
+          message:
+            error.message ||
+            "Không thể tải thông tin hồ sơ mới nhất. Bạn vẫn có thể chỉnh sửa.",
+        });
+      }
+    }
+
+    setEditingProfile((prev) => !prev);
+  };
+
+  const handleProfileSubmit = async (event) => {
+    event.preventDefault();
+    setStatus({ type: "", message: "" });
+
+    const errors = validateProfileForm();
+    if (Object.keys(errors).length > 0) {
+      setProfileErrors(errors);
+      return;
+    }
+
+    setProfileSubmitting(true);
+    try {
+      const payload = {
+        full_name: profileForm.full_name.trim(),
+        phone: profileForm.phone.trim() || null,
+        address: profileForm.address.trim() || null,
+      };
+
+      const updatedProfile = await updateCurrentUserProfile(payload);
+
+      const updatedUser = {
+        ...(storedUser || {}),
+        ...updatedProfile,
+      };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setStoredUser(updatedUser);
+
+      setStatus({
+        type: "success",
+        message: "Cập nhật thông tin hồ sơ thành công.",
+      });
+      setEditingProfile(false);
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message:
+          error.message ||
+          "Không thể cập nhật thông tin hồ sơ. Vui lòng thử lại sau.",
+      });
+    } finally {
+      setProfileSubmitting(false);
     }
   };
 
@@ -185,8 +303,11 @@ const Profile = () => {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <button className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition">
-            Chỉnh sửa hồ sơ
+          <button
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition"
+            onClick={handleToggleEditProfile}
+          >
+            {editingProfile ? "Đóng chỉnh sửa" : "Chỉnh sửa hồ sơ"}
           </button>
           <button className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition">
             Lịch sử đơn hàng
@@ -209,6 +330,114 @@ const Profile = () => {
           >
             {status.message}
           </div>
+        )}
+
+        {editingProfile && (
+          <form
+            onSubmit={handleProfileSubmit}
+            className="space-y-6 border-t pt-6"
+          >
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Họ và tên
+                </label>
+                <input
+                  type="text"
+                  name="full_name"
+                  value={profileForm.full_name}
+                  onChange={handleProfileFieldChange}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                    profileErrors.full_name
+                      ? "border-red-300 focus:ring-red-200"
+                      : "border-gray-200 focus:ring-blue-200"
+                  }`}
+                  placeholder="Nhập họ và tên"
+                />
+                {profileErrors.full_name && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {profileErrors.full_name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={storedUser?.email || ""}
+                  disabled
+                  className="w-full px-4 py-3 border rounded-lg bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Số điện thoại
+                </label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={profileForm.phone}
+                  onChange={handleProfileFieldChange}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 ${
+                    profileErrors.phone
+                      ? "border-red-300 focus:ring-red-200"
+                      : "border-gray-200 focus:ring-blue-200"
+                  }`}
+                  placeholder="Nhập số điện thoại"
+                />
+                {profileErrors.phone && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {profileErrors.phone}
+                  </p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Địa chỉ
+                </label>
+                <textarea
+                  name="address"
+                  value={profileForm.address}
+                  onChange={handleProfileFieldChange}
+                  rows={3}
+                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 resize-none ${
+                    profileErrors.address
+                      ? "border-red-300 focus:ring-red-200"
+                      : "border-gray-200 focus:ring-blue-200"
+                  }`}
+                  placeholder="Nhập địa chỉ nhận hàng của bạn"
+                />
+                {profileErrors.address && (
+                  <p className="text-sm text-red-500 mt-1">
+                    {profileErrors.address}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                onClick={() => setEditingProfile(false)}
+                disabled={profileSubmitting}
+              >
+                Hủy
+              </button>
+              <button
+                type="submit"
+                disabled={profileSubmitting}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+              >
+                {profileSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+              </button>
+            </div>
+          </form>
         )}
 
         {showPasswordForm && (
