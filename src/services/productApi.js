@@ -31,6 +31,27 @@ export const fetchProducts = async (params = {}) => {
 };
 
 /**
+ * Lấy chi tiết sản phẩm theo slug
+ * GET /api/products/{slug}
+ */
+export const fetchProductDetail = async (slug) => {
+  if (!slug) {
+    throw new Error("Thiếu thông tin sản phẩm.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/products/${slug}`);
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data;
+};
+
+/**
  * Lấy danh sách danh mục (user)
  * GET /api/categories
  */

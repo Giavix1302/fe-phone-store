@@ -28,7 +28,7 @@ const AppRouter = () => {
 
           {/* Sản phẩm */}
           <Route path="products" element={<Products />} />
-          <Route path="products/:id" element={<ProductDetail />} />
+          <Route path="products/:slug" element={<ProductDetail />} />
           <Route path="products/category/:category" element={<Products />} />
 
           {/* Giỏ hàng */}

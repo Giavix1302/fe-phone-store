@@ -1,75 +1,40 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { fetchProductDetail } from "../services/productApi";
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-
-  // Mock data
-  const allProducts = [
-    {
-      id: "1",
-      name: "iPhone 15 Pro Max",
-      price: "29990000",
-      originalPrice: "32990000",
-      image:
-        "https://images.unsplash.com/photo-1592286900632-b0b0d5b1a7f0?w=500&h=500&fit=crop",
-      category: "iphone",
-      brand: "Apple",
-      description:
-        "iPhone 15 Pro Max với chip A17 Pro mạnh mẽ, camera 48MP chuyên nghiệp và pin lâu dài. Thiết kế Titanium cao cấp.",
-      specs: [
-        "Màn hình: 6.7 inch Super Retina XDR",
-        "Chip: A17 Pro",
-        "Camera: 48MP chính, 12MP góc siêu rộng, 12MP telephoto",
-        "Pin: Lên đến 29 giờ phát video",
-        "Bộ nhớ: 128GB, 256GB, 512GB, 1TB",
-      ],
-      inStock: true,
-      rating: 4.8,
-      reviews: 234,
-    },
-    {
-      id: "2",
-      name: "Samsung Galaxy S24 Ultra",
-      price: "26990000",
-      originalPrice: "29990000",
-      image:
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500&h=500&fit=crop",
-      category: "samsung",
-      brand: "Samsung",
-      description:
-        "Galaxy S24 Ultra với bút S Pen tích hợp, camera zoom 100x và AI thông minh. Màn hình Dynamic AMOLED 2X 6.8 inch.",
-      specs: [
-        "Màn hình: 6.8 inch Dynamic AMOLED 2X",
-        "Chip: Snapdragon 8 Gen 3",
-        "Camera: 200MP chính, zoom 100x",
-        "Pin: 5000mAh, sạc nhanh 45W",
-        "Bộ nhớ: 256GB, 512GB, 1TB",
-      ],
-      inStock: true,
-      rating: 4.7,
-      reviews: 189,
-    },
-  ];
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      const foundProduct = allProducts.find((p) => p.id === id);
-      if (foundProduct) {
-        setProduct(foundProduct);
+    const load = async () => {
+      if (!slug) return;
+
+      setLoading(true);
+      setError("");
+      try {
+        const data = await fetchProductDetail(slug);
+        setProduct(data);
+      } catch (err) {
+        setError(err.message || "Không thể tải thông tin sản phẩm.");
+        setProduct(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, 500);
-  }, [id]);
+    };
+
+    load();
+  }, [slug]);
 
   const formatPrice = (price) => {
-    return parseInt(price).toLocaleString("vi-VN") + "₫";
+    if (price == null) return "";
+    const numeric =
+      typeof price === "number" ? price : parseInt(String(price) || "0", 10) || 0;
+    return numeric.toLocaleString("vi-VN") + "₫";
   };
 
   const handleAddToCart = () => {
@@ -93,14 +58,14 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-2xl font-bold mb-2">Không tìm thấy sản phẩm</h2>
+          <h2 className="text-2xl font-bold mb-2">Không thể tải sản phẩm</h2>
           <p className="text-gray-600 mb-4">
-            Sản phẩm không tồn tại hoặc đã bị xóa
+            {error || "Sản phẩm không tồn tại hoặc đã bị xóa."}
           </p>
           <Link
             to="/products"
@@ -128,23 +93,32 @@ const ProductDetail = () => {
         {/* Product Image */}
         <div className="space-y-4">
           <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+            {product.images && product.images.length > 0 ? (
+              <img
+                src={
+                  product.images.find((img) => img.is_primary)?.image_url ||
+                  product.images[0]?.image_url
+                }
+                alt={product.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                Không có hình ảnh
+              </div>
+            )}
           </div>
         </div>
 
         {/* Product Info */}
-        <div className="space-y-6">
+          <div className="space-y-6">
           {/* Header */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">
-                {product.brand}
+                {product.brand?.name}
               </span>
-              {product.inStock && (
+              {product.stock_quantity > 0 && (
                 <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm font-medium">
                   Còn hàng
                 </span>
@@ -155,35 +129,39 @@ const ProductDetail = () => {
             </h1>
 
             {/* Rating */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex items-center">
-                {"⭐".repeat(Math.floor(product.rating))}
-                <span className="ml-1 text-gray-600">({product.rating}/5)</span>
+            {product.average_rating != null && (
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center">
+                  {"⭐".repeat(Math.round(product.average_rating || 0))}
+                  <span className="ml-1 text-gray-600">
+                    ({product.average_rating}/5)
+                  </span>
+                </div>
+                <span className="text-gray-500">•</span>
+                <span className="text-gray-600">
+                  {product.total_reviews} đánh giá
+                </span>
               </div>
-              <span className="text-gray-500">•</span>
-              <span className="text-gray-600">{product.reviews} đánh giá</span>
-            </div>
+            )}
           </div>
 
           {/* Price */}
           <div className="space-y-2">
             <div className="flex items-center gap-4">
               <span className="text-3xl font-bold text-red-600">
-                {formatPrice(product.price)}
+                {formatPrice(product.discount_price ?? product.price)}
               </span>
-              {product.originalPrice && (
+              {product.discount_price && (
                 <span className="text-xl text-gray-400 line-through">
-                  {formatPrice(product.originalPrice)}
+                  {formatPrice(product.price)}
                 </span>
               )}
             </div>
-            {product.originalPrice && (
+            {product.discount_price && (
               <p className="text-green-600 font-medium">
                 Tiết kiệm:{" "}
                 {formatPrice(
-                  (
-                    parseInt(product.originalPrice) - parseInt(product.price)
-                  ).toString()
+                  (product.price || 0) - (product.discount_price || 0)
                 )}
               </p>
             )}
@@ -201,12 +179,21 @@ const ProductDetail = () => {
           <div>
             <h3 className="text-lg font-semibold mb-3">Thông số kỹ thuật</h3>
             <ul className="space-y-2">
-              {product.specs.map((spec, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  <span className="text-gray-600">{spec}</span>
-                </li>
-              ))}
+              {product.specifications && product.specifications.length > 0 ? (
+                product.specifications.map((spec) => (
+                  <li key={spec.id} className="flex items-start">
+                    <span className="text-blue-600 mr-2">•</span>
+                    <span className="text-gray-800 font-medium">
+                      {spec.spec_name}:
+                    </span>
+                    <span className="ml-1 text-gray-600">
+                      {spec.spec_value}
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-500">Chưa có thông số.</li>
+              )}
             </ul>
           </div>
 
@@ -251,12 +238,14 @@ const ProductDetail = () => {
 
           {/* Related links */}
           <div className="pt-6 border-t border-gray-200">
-            <Link
-              to={`/products/category/${product.category}`}
-              className="text-blue-600 hover:underline"
-            >
-              Xem thêm sản phẩm {product.brand} →
-            </Link>
+            {product.category && (
+              <Link
+                to={`/products/category/${product.category.name.toLowerCase()}`}
+                className="text-blue-600 hover:underline"
+              >
+                Xem thêm sản phẩm {product.brand?.name} →
+              </Link>
+            )}
           </div>
         </div>
       </div>
