@@ -32,6 +32,22 @@ const Profile = () => {
   const [profileErrors, setProfileErrors] = useState({});
 
   useEffect(() => {
+    const loadLatestProfile = async () => {
+      try {
+        const profile = await fetchCurrentUserProfile();
+        const currentUser = parseStoredUser() || storedUser || {};
+        const updatedUser = { ...currentUser, ...profile };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setStoredUser(updatedUser);
+      } catch {
+        console.error("Không thể tải thông tin hồ sơ mới nhất.");
+      }
+    };
+
+    loadLatestProfile();
+  }, []);
+
+  useEffect(() => {
     // Đồng bộ form khi storedUser thay đổi (vd: sau khi login lại)
     setProfileForm({
       full_name: storedUser?.full_name || "",
