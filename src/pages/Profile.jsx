@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { changePassword, parseStoredUser } from "../services/authApi";
+import {
+  changePassword,
+  parseStoredUser,
+  uploadAvatar,
+} from "../services/authApi";
 
 const initialPasswordState = {
   old_password: "",
@@ -8,12 +12,14 @@ const initialPasswordState = {
 };
 
 const Profile = () => {
-  const storedUser = parseStoredUser();
+  const [storedUser, setStoredUser] = useState(() => parseStoredUser());
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState(initialPasswordState);
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   const displayName = useMemo(() => {
     return (
@@ -23,6 +29,50 @@ const Profile = () => {
       "Người dùng"
     );
   }, [storedUser]);
+
+  const handleAvatarChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Preview trước
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+    setStatus({ type: "", message: "" });
+
+    setAvatarUploading(true);
+    try {
+      const data = await uploadAvatar(file);
+
+      // BE có thể trả { avatar } hoặc { id, avatar, updatedAt }
+      const newAvatarUrl = data?.avatar || data?.avatarUrl || null;
+
+      if (!newAvatarUrl) {
+        throw new Error("Phản hồi không hợp lệ từ máy chủ.");
+      }
+
+      // Cập nhật user trong localStorage và state
+      const currentUser = parseStoredUser() || storedUser || {};
+      const updatedUser = { ...currentUser, avatar: newAvatarUrl };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setStoredUser(updatedUser);
+
+      setStatus({
+        type: "success",
+        message: "Cập nhật ảnh đại diện thành công.",
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message:
+          error.message ||
+          "Không thể cập nhật ảnh đại diện. Vui lòng thử lại sau.",
+      });
+      // Nếu lỗi thì bỏ preview tạm
+      setAvatarPreview(null);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -98,9 +148,34 @@ const Profile = () => {
       <h1 className="text-3xl font-bold mb-8">Hồ sơ cá nhân</h1>
 
       <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
-        <div className="text-center">
-          <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">👤</span>
+        <div className="text-center space-y-3">
+          <div className="relative w-24 h-24 mx-auto mb-2">
+            {storedUser?.avatar || avatarPreview ? (
+              <img
+                src={avatarPreview || storedUser?.avatar}
+                alt="Avatar"
+                className="w-24 h-24 rounded-full object-cover border border-gray-200"
+              />
+            ) : (
+              <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
+                <span className="text-3xl">👤</span>
+              </div>
+            )}
+
+            <label
+              className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow cursor-pointer border border-gray-200"
+            >
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+                disabled={avatarUploading}
+              />
+              <span className="text-xs font-medium text-blue-600">
+                {avatarUploading ? "..." : "Sửa"}
+              </span>
+            </label>
           </div>
           <h2 className="text-2xl font-bold">{displayName}</h2>
           <p className="text-gray-600">{storedUser?.email}</p>

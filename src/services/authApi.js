@@ -158,3 +158,44 @@ export const changePassword = async (payload) => {
 
   return result?.data ?? null;
 };
+
+/**
+ * Upload / cập nhật avatar người dùng hiện tại.
+ * @param {File} file - File ảnh avatar
+ * @returns {Promise<any>} dữ liệu `data` từ ApiResponse của BE
+ */
+export const uploadAvatar = async (file) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  }
+
+  if (!file) {
+    throw new Error("Vui lòng chọn file ảnh.");
+  }
+
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const response = await fetch(`${API_BASE_URL}/users/me/avatar`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      // Không set "Content-Type" để browser tự thêm boundary cho multipart/form-data
+    },
+    credentials: "include",
+    body: formData,
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message ||
+      "Không thể cập nhật ảnh đại diện. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data;
+};
