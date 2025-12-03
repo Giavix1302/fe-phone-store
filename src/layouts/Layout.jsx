@@ -89,6 +89,18 @@ const Layout = () => {
               >
                 Giỏ hàng
               </Link>
+              {user?.role === "ADMIN" && (
+                <Link
+                  to="/admin"
+                  className={`font-medium transition ${
+                    isActive("/admin")
+                      ? "text-primary-100 border-b-2 border-primary-100"
+                      : "text-gray-600 hover:text-primary-100"
+                  }`}
+                >
+                  Quản trị
+                </Link>
+              )}
             </nav>
 
             {/* Right side buttons */}
@@ -162,13 +174,24 @@ const Layout = () => {
                   Giỏ hàng
                 </Link>
                 {user && (
-                  <Link
-                    to="/profile"
-                    className="block px-3 py-2 text-gray-600 hover:text-primary-100 font-medium"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Hồ sơ
-                  </Link>
+                  <>
+                    <Link
+                      to="/profile"
+                      className="block px-3 py-2 text-gray-600 hover:text-primary-100 font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Hồ sơ
+                    </Link>
+                    {user.role === "ADMIN" && (
+                      <Link
+                        to="/admin"
+                        className="block px-3 py-2 text-gray-600 hover:text-primary-100 font-medium"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Quản trị
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
             </div>

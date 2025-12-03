@@ -15,6 +15,7 @@ import VerifyEmail from "../pages/VerifyEmail";
 import PrivateRoute from "./PrivateRoute";
 import Profile from "../pages/Profile";
 import NotFound from "../pages/NotFound";
+import AdminDashboard from "../pages/AdminDashboard";
 
 // Router configuration
 const AppRouter = () => {
@@ -45,6 +46,14 @@ const AppRouter = () => {
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="admin"
+            element={
+              <PrivateRoute roles={["ADMIN"]}>
+                <AdminDashboard />
               </PrivateRoute>
             }
           />
