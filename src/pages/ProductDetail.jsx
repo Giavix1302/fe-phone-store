@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { fetchProductDetail } from "../services/productApi";
 import Review from "../component/Review";
+import ModalAddItemToCart from "../component/ModalAddItemToCart";
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -10,7 +11,7 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
-
+  const [showModal, setShowModal] = useState(false);
   useEffect(() => {
     const load = async () => {
       if (!slug) return;
@@ -38,10 +39,10 @@ const ProductDetail = () => {
     return numeric.toLocaleString("vi-VN") + "₫";
   };
 
-  const handleAddToCart = () => {
-    // Mock add to cart
-    alert(`Đã thêm ${quantity} ${product.name} vào giỏ hàng!`);
-  };
+  // const handleAddToCart = () => {
+  //   // Mock add to cart
+  //   alert(`Đã thêm ${quantity} ${product.name} vào giỏ hàng!`);
+  // };
 
   const handleBuyNow = () => {
     // Mock buy now
@@ -223,7 +224,7 @@ const ProductDetail = () => {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={handleAddToCart}
+               onClick={() => setShowModal(true)}
                 className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition font-medium"
               >
                 🛒 Thêm vào giỏ hàng
@@ -251,6 +252,15 @@ const ProductDetail = () => {
         </div>
       </div>
       <Review productId={product.id} />
+      <ModalAddItemToCart
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        product={product} // Product từ fetchProductDetail
+        onSuccess={() => {
+          // Optional: Show success message, update cart count, etc.
+          console.log("Đã thêm vào giỏ hàng!");
+        }}
+      />
     </div>
   );
 };
