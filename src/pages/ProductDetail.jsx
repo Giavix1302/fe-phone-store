@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { fetchProductDetail } from "../services/productApi";
+import Review from "../component/Review";
 
 const ProductDetail = () => {
   const { slug } = useParams();
@@ -249,6 +250,7 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+      <Review productId={product.id} />
     </div>
   );
 };
