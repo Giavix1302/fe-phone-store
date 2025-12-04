@@ -21,6 +21,8 @@ const Profile = () => {
   const navigate = useNavigate();
   const [storedUser, setStoredUser] = useState(() => parseStoredUser());
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("profile");
   const [passwordForm, setPasswordForm] = useState(initialPasswordState);
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -32,9 +34,11 @@ const Profile = () => {
     full_name: storedUser?.full_name || "",
     phone: storedUser?.phone || "",
     address: storedUser?.address || "",
+    email: storedUser?.email || "",
   });
   const [profileSubmitting, setProfileSubmitting] = useState(false);
   const [profileErrors, setProfileErrors] = useState({});
+  const [showPhoneChange, setShowPhoneChange] = useState(false);
 
   useEffect(() => {
     const loadLatestProfile = async () => {
@@ -58,8 +62,20 @@ const Profile = () => {
       full_name: storedUser?.full_name || "",
       phone: storedUser?.phone || "",
       address: storedUser?.address || "",
+      email: storedUser?.email || "",
     });
   }, [storedUser]);
+
+  // Tự động ẩn thông báo sau 2 giây
+  useEffect(() => {
+    if (status.message) {
+      const timer = setTimeout(() => {
+        setStatus({ type: "", message: "" });
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status.message]);
 
   const displayName = useMemo(() => {
     return (
@@ -69,6 +85,23 @@ const Profile = () => {
       "Người dùng"
     );
   }, [storedUser]);
+
+  // Kiểm tra xem có thay đổi thông tin không
+  const hasChanges = useMemo(() => {
+    const currentFullName = profileForm.full_name?.trim() || "";
+    const currentPhone = profileForm.phone?.trim() || "";
+    const currentAddress = profileForm.address?.trim() || "";
+    
+    const originalFullName = storedUser?.full_name || "";
+    const originalPhone = storedUser?.phone || "";
+    const originalAddress = storedUser?.address || "";
+
+    return (
+      currentFullName !== originalFullName ||
+      currentPhone !== originalPhone ||
+      currentAddress !== originalAddress
+    );
+  }, [profileForm, storedUser]);
 
   const handleAvatarChange = async (event) => {
     const file = event.target.files?.[0];
@@ -169,8 +202,7 @@ const Profile = () => {
     setEditingProfile((prev) => !prev);
   };
 
-  const handleProfileSubmit = async (event) => {
-    event.preventDefault();
+  const handleProfileSubmit = async () => {
     setStatus({ type: "", message: "" });
 
     const errors = validateProfileForm();
@@ -186,6 +218,11 @@ const Profile = () => {
         phone: profileForm.phone.trim() || null,
         address: profileForm.address.trim() || null,
       };
+      
+      // Note: gender and date_of_birth might not be in API yet, but we can store them locally
+      // If API supports them, add to payload:
+      // gender: profileForm.gender || null,
+      // date_of_birth: profileForm.date_of_birth || null,
 
       const updatedProfile = await updateCurrentUserProfile(payload);
 
@@ -195,12 +232,12 @@ const Profile = () => {
       };
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setStoredUser(updatedUser);
-
+      
       setStatus({
         type: "success",
         message: "Cập nhật thông tin hồ sơ thành công.",
       });
-      setEditingProfile(false);
+      setShowPhoneChange(false);
     } catch (error) {
       setStatus({
         type: "error",
@@ -325,17 +362,75 @@ const Profile = () => {
 
           {/* Menu Items */}
           <div className="py-4 overflow-y-auto flex-1">
-            <Link
-              to="/profile"
-              className={`flex items-center space-x-3 px-6 py-3 hover:bg-gray-100 transition ${
-                location.pathname === "/profile" ? "bg-gray-100 border-l-4 border-orange-500" : ""
-              }`}
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="text-gray-800 font-medium">Tài Khoản Của Tôi</span>
-            </Link>
+            {/* Tài Khoản Của Tôi với Submenu */}
+            <div>
+              <button
+                onClick={() => {
+                  setIsAccountMenuOpen(!isAccountMenuOpen);
+                  if (!isAccountMenuOpen) {
+                    setActiveTab("profile");
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-6 py-3 hover:bg-gray-100 transition ${
+                  activeTab === "profile" || activeTab === "address" || activeTab === "password" || activeTab === "personal" 
+                    ? "bg-gray-100 border-l-4 border-orange-500" 
+                    : ""
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="text-gray-800 font-medium">Tài Khoản Của Tôi</span>
+                </div>
+                <svg 
+                  className={`w-4 h-4 text-gray-600 transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`}
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {/* Submenu */}
+              {isAccountMenuOpen && (
+                <div className="bg-gray-50">
+                  <button
+                    onClick={() => setActiveTab("profile")}
+                    className={`w-full flex items-center px-10 py-2.5 hover:bg-gray-100 transition text-sm ${
+                      activeTab === "profile" ? "text-red-600 font-medium" : "text-gray-700"
+                    }`}
+                  >
+                    Hồ Sơ
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("address")}
+                    className={`w-full flex items-center px-10 py-2.5 hover:bg-gray-100 transition text-sm ${
+                      activeTab === "address" ? "text-red-600 font-medium" : "text-gray-700"
+                    }`}
+                  >
+                    Địa Chỉ
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("password")}
+                    className={`w-full flex items-center px-10 py-2.5 hover:bg-gray-100 transition text-sm ${
+                      activeTab === "password" ? "text-red-600 font-medium" : "text-gray-700"
+                    }`}
+                  >
+                    Đổi Mật Khẩu
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("personal")}
+                    className={`w-full flex items-center px-10 py-2.5 hover:bg-gray-100 transition text-sm ${
+                      activeTab === "personal" ? "text-red-600 font-medium" : "text-gray-700"
+                    }`}
+                  >
+                    Thông Tin Cá Nhân
+                  </button>
+                </div>
+              )}
+            </div>
             
             <Link
               to="/orders"
@@ -381,9 +476,153 @@ const Profile = () => {
 
         {/* Main Content Area */}
         <div className="flex-1">
-          <h1 className="text-3xl font-bold mb-8">Hồ sơ cá nhân</h1>
+          {activeTab === "profile" && (
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Hồ Sơ Của Tôi</h1>
+              <p className="text-gray-600 mb-6">Quản lý thông tin hồ sơ để bảo mật tài khoản</p>
 
-          <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column - Form Fields */}
+                  <div className="lg:col-span-2 space-y-4">
+                    {/* Username - Read Only */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tên đăng nhập
+                      </label>
+                      <input
+                        type="text"
+                        value={storedUser?.username || ""}
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Full Name */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Tên
+                      </label>
+                      <input
+                        type="text"
+                        value={profileForm.full_name}
+                        onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        placeholder="Nhập tên của bạn"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={storedUser?.email ? `${storedUser.email.substring(0, 2)}*****${storedUser.email.substring(storedUser.email.indexOf('@'))}` : ""}
+                        disabled
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Số điện thoại
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="tel"
+                          value={showPhoneChange ? (profileForm.phone || "") : (storedUser?.phone && storedUser.phone.length > 2 ? `********${storedUser.phone.slice(-2)}` : "")}
+                          onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                          disabled={!showPhoneChange}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-50"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPhoneChange(!showPhoneChange);
+                            if (!showPhoneChange) {
+                              setProfileForm({ ...profileForm, phone: storedUser?.phone || "" });
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-700 text-sm font-medium whitespace-nowrap"
+                        >
+                          Thay Đổi
+                        </button>
+                      </div>
+                    </div>
+
+
+                    {/* Status Message */}
+                    {status.message && (
+                      <div
+                        className={`rounded-lg border px-4 py-3 text-sm ${
+                          status.type === "success"
+                            ? "bg-green-50 border-green-200 text-green-700"
+                            : "bg-red-50 border-red-200 text-red-700"
+                        }`}
+                      >
+                        {status.message}
+                      </div>
+                    )}
+
+                    {/* Save Button */}
+                    <div className="pt-4">
+                      <button
+                        onClick={handleProfileSubmit}
+                        disabled={profileSubmitting || !hasChanges}
+                        className="w-full bg-orange-500 text-white py-3 px-6 rounded-lg hover:bg-orange-600 transition font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {profileSubmitting ? "Đang lưu..." : "Lưu"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column - Avatar Upload */}
+                  <div className="lg:col-span-1">
+                    <div className="flex flex-col items-center">
+                      <div className="relative w-32 h-32 mb-4">
+                        {storedUser?.avatar || avatarPreview ? (
+                          <img
+                            src={avatarPreview || storedUser?.avatar}
+                            alt="Avatar"
+                            className="w-32 h-32 rounded-full object-cover border-2 border-gray-200"
+                          />
+                        ) : (
+                          <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center">
+                            <span className="text-4xl">👤</span>
+                          </div>
+                        )}
+                      </div>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarChange}
+                          disabled={avatarUploading}
+                        />
+                        <span className="inline-block px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium">
+                          {avatarUploading ? "Đang tải..." : "Chọn Ảnh"}
+                        </span>
+                      </label>
+                      <div className="mt-4 text-xs text-gray-500 text-center space-y-1">
+                        <p>Dụng lượng file tối đa 1 MB</p>
+                        <p>Định dạng: .JPEG, .PNG</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab !== "profile" && (
+            <div>
+              <h1 className="text-3xl font-bold mb-8">Hồ sơ cá nhân</h1>
+
+              <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
         <div className="text-center space-y-3">
           <div className="relative w-24 h-24 mx-auto mb-2">
             {storedUser?.avatar || avatarPreview ? (
@@ -641,7 +880,9 @@ const Profile = () => {
             </button>
           </form>
         )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
