@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   changePassword,
   parseStoredUser,
   uploadAvatar,
   fetchCurrentUserProfile,
   updateCurrentUserProfile,
+  logout as logoutApi,
 } from "../services/authApi";
+import { emitAuthChanged } from "../utils/authEvents";
 
 const initialPasswordState = {
   old_password: "",
@@ -14,6 +17,8 @@ const initialPasswordState = {
 };
 
 const Profile = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [storedUser, setStoredUser] = useState(() => parseStoredUser());
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordForm, setPasswordForm] = useState(initialPasswordState);
@@ -278,10 +283,107 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold mb-8">Hồ sơ cá nhân</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="flex gap-4">
+        {/* User Sidebar Menu */}
+        <div className="w-64 bg-white shadow-lg rounded-lg flex flex-col flex-shrink-0">
+          {/* User Info Header */}
+          <div className="bg-orange-500 p-4 flex items-center space-x-3 flex-shrink-0 rounded-t-lg">
+            {storedUser?.avatar ? (
+              <img
+                src={storedUser.avatar}
+                alt={storedUser?.full_name || storedUser?.name || "User"}
+                className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  const fallback = e.target.parentElement.querySelector(".avatar-fallback");
+                  if (fallback) fallback.style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div
+              className={`avatar-fallback w-12 h-12 rounded-full bg-white flex items-center justify-center text-orange-500 font-semibold text-base border-2 border-white shadow-md ${
+                storedUser?.avatar ? "hidden" : ""
+              }`}
+            >
+              {(storedUser?.full_name || storedUser?.name || storedUser?.email || "U")
+                .charAt(0)
+                .toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-medium text-sm truncate">
+                {storedUser?.full_name || storedUser?.name || storedUser?.email || "User"}
+              </p>
+              <Link
+                to="/profile"
+                className="text-white text-xs opacity-90 hover:opacity-100"
+              >
+                Sửa Hồ Sơ
+              </Link>
+            </div>
+          </div>
 
-      <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
+          {/* Menu Items */}
+          <div className="py-4 overflow-y-auto flex-1">
+            <Link
+              to="/profile"
+              className={`flex items-center space-x-3 px-6 py-3 hover:bg-gray-100 transition ${
+                location.pathname === "/profile" ? "bg-gray-100 border-l-4 border-orange-500" : ""
+              }`}
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="text-gray-800 font-medium">Tài Khoản Của Tôi</span>
+            </Link>
+            
+            <Link
+              to="/orders"
+              className={`flex items-center space-x-3 px-6 py-3 hover:bg-gray-100 transition ${
+                location.pathname === "/orders" ? "bg-gray-100 border-l-4 border-orange-500" : ""
+              }`}
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-gray-800 font-medium">Đơn Mua</span>
+            </Link>
+            
+            <button
+              className="w-full flex items-center space-x-3 px-6 py-3 hover:bg-gray-100 transition text-left"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span className="text-gray-800 font-medium">Thông Báo</span>
+            </button>
+          </div>
+
+          {/* Logout Button */}
+          <div className="p-4 border-t border-gray-200">
+            <button
+              onClick={async () => {
+                await logoutApi();
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                emitAuthChanged();
+                navigate("/");
+              }}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="font-medium">Đăng Xuất</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold mb-8">Hồ sơ cá nhân</h1>
+
+          <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
         <div className="text-center space-y-3">
           <div className="relative w-24 h-24 mx-auto mb-2">
             {storedUser?.avatar || avatarPreview ? (
@@ -539,6 +641,8 @@ const Profile = () => {
             </button>
           </form>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

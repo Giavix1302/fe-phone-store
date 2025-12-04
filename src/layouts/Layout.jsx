@@ -97,6 +97,7 @@ const Layout = () => {
     };
   }, [syncUserFromStorage, fetchAndUpdateAvatar]);
 
+
   const handleLogout = async () => {
     await logoutApi();
     localStorage.removeItem("token");
@@ -195,9 +196,11 @@ const Layout = () => {
                     )}
                   </Link>
 
-                  {/* Avatar User with Dropdown */}
-                  <div className="relative group">
-                    <div className="flex items-center space-x-2 cursor-pointer px-3 py-1.5 rounded-full bg-white hover:bg-gray-100 transition border border-gray-200">
+                  {/* Avatar User */}
+                  <Link
+                    to="/profile"
+                    className="flex items-center space-x-2 cursor-pointer px-3 py-1.5 rounded-full bg-white hover:bg-gray-100 transition border border-gray-200"
+                  >
                       {user?.avatar ? (
                         <img
                           src={user.avatar}
@@ -223,35 +226,7 @@ const Layout = () => {
                       <span className="text-gray-800 font-medium text-sm hidden md:block">
                         {user?.full_name || user?.name || user?.email || "User"}
                       </span>
-                    </div>
-                    
-                    {/* Dropdown Menu */}
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                      {/* Arrow pointing up */}
-                      <div className="absolute -top-2 right-6 w-4 h-4 bg-white transform rotate-45 border-l border-t border-gray-200"></div>
-                      
-                      <div className="relative bg-white rounded-lg py-1">
-                        <Link
-                          to="/profile"
-                          className="block px-4 py-2 text-gray-800 hover:bg-gray-100 transition text-sm"
-                        >
-                          Tài Khoản Của Tôi
-                        </Link>
-                        <Link
-                          to="/profile"
-                          className="block px-4 py-2 text-gray-800 hover:bg-gray-100 transition text-sm"
-                        >
-                          Đơn Mua
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition text-sm"
-                        >
-                          Đăng Xuất
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  </Link>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
