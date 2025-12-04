@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { addToCart } from "../services/cartApi";
+import { emitCartChanged } from "../utils/cartEvents";
 
 const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
     const [selectedColor, setSelectedColor] = useState(null);
@@ -79,6 +80,8 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
                 color_id: selectedColor,
                 quantity: quantity,
             });
+
+            emitCartChanged();
 
             if (onSuccess) {
                 onSuccess();
@@ -238,4 +241,3 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
 };
 
 export default ModalAddItemToCart;
-
