@@ -35,26 +35,31 @@ const Layout = () => {
     loadCartCount();
   }, [loadCartCount]);
 
-  // Fetch user profile to get avatar if user is logged in
-  useEffect(() => {
+  // Function to fetch and update user avatar
+  const fetchAndUpdateAvatar = useCallback(async () => {
     const token = localStorage.getItem("token");
     const currentUser = parseStoredUser();
     
-    if (token && currentUser && !currentUser.avatar) {
-      // Fetch profile to get avatar if not in localStorage
-      fetchCurrentUserProfile()
-        .then((profile) => {
-          if (profile?.avatar) {
-            const updatedUser = { ...currentUser, ...profile };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            setUser(updatedUser);
-          }
-        })
-        .catch(() => {
-          // Silently fail - avatar will show initial if not available
-        });
+    if (token && currentUser) {
+      try {
+        const profile = await fetchCurrentUserProfile();
+        if (profile) {
+          // Merge profile data with current user data
+          const updatedUser = { ...currentUser, ...profile };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
+      } catch (error) {
+        // Silently fail - avatar will show initial if not available
+        console.warn("Could not fetch user profile:", error);
+      }
     }
   }, []);
+
+  // Fetch user profile to get avatar if user is logged in (on mount)
+  useEffect(() => {
+    fetchAndUpdateAvatar();
+  }, [fetchAndUpdateAvatar]);
 
   useEffect(() => {
     const handleCartChanged = () => {
@@ -77,14 +82,20 @@ const Layout = () => {
       }
     };
 
+    const handleAuthChanged = () => {
+      syncUserFromStorage();
+      // Fetch avatar when auth changes (e.g., after login)
+      fetchAndUpdateAvatar();
+    };
+
     window.addEventListener("storage", handleStorage);
-    window.addEventListener(AUTH_CHANGED_EVENT, syncUserFromStorage);
+    window.addEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
 
     return () => {
       window.removeEventListener("storage", handleStorage);
-      window.removeEventListener(AUTH_CHANGED_EVENT, syncUserFromStorage);
+      window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
     };
-  }, [syncUserFromStorage]);
+  }, [syncUserFromStorage, fetchAndUpdateAvatar]);
 
   const handleLogout = async () => {
     await logoutApi();
@@ -184,42 +195,63 @@ const Layout = () => {
                     )}
                   </Link>
 
-                  {/* Avatar User */}
-                  <Link
-                    to="/profile"
-                    className="relative p-1 transition rounded-full hover:bg-gray-200"
-                    title={user?.full_name || user?.name || user?.email}
-                  >
-                    {user?.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user?.full_name || user?.name || "User"}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
-                        onError={(e) => {
-                          // Fallback to initial if image fails to load
-                          e.target.style.display = "none";
-                          const fallback = e.target.parentElement.querySelector(".avatar-fallback");
-                          if (fallback) fallback.style.display = "flex";
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className={`avatar-fallback w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-white font-semibold text-sm border-2 border-white shadow-md ${
-                        user?.avatar ? "hidden" : ""
-                      }`}
-                    >
-                      {(user?.full_name || user?.name || user?.email || "U")
-                        .charAt(0)
-                        .toUpperCase()}
+                  {/* Avatar User with Dropdown */}
+                  <div className="relative group">
+                    <div className="flex items-center space-x-2 cursor-pointer px-3 py-1.5 rounded-full bg-white hover:bg-gray-100 transition border border-gray-200">
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={user?.full_name || user?.name || "User"}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                          onError={(e) => {
+                            // Fallback to initial if image fails to load
+                            e.target.style.display = "none";
+                            const fallback = e.target.parentElement.querySelector(".avatar-fallback");
+                            if (fallback) fallback.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className={`avatar-fallback w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-white font-semibold text-sm border-2 border-white shadow-md ${
+                          user?.avatar ? "hidden" : ""
+                        }`}
+                      >
+                        {(user?.full_name || user?.name || user?.email || "U")
+                          .charAt(0)
+                          .toUpperCase()}
+                      </div>
+                      <span className="text-gray-800 font-medium text-sm hidden md:block">
+                        {user?.full_name || user?.name || user?.email || "User"}
+                      </span>
                     </div>
-                  </Link>
-
-                  <button
-                    onClick={handleLogout}
-                    className="bg-error-100 text-white px-4 py-2 rounded-lg hover:bg-error-200 transition text-sm"
-                  >
-                    Đăng xuất
-                  </button>
+                    
+                    {/* Dropdown Menu */}
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      {/* Arrow pointing up */}
+                      <div className="absolute -top-2 right-6 w-4 h-4 bg-white transform rotate-45 border-l border-t border-gray-200"></div>
+                      
+                      <div className="relative bg-white rounded-lg py-1">
+                        <Link
+                          to="/profile"
+                          className="block px-4 py-2 text-gray-800 hover:bg-gray-100 transition text-sm"
+                        >
+                          Tài Khoản Của Tôi
+                        </Link>
+                        <Link
+                          to="/profile"
+                          className="block px-4 py-2 text-gray-800 hover:bg-gray-100 transition text-sm"
+                        >
+                          Đơn Mua
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition text-sm"
+                        >
+                          Đăng Xuất
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2">
