@@ -10,6 +10,7 @@ import Products from "../pages/Products";
 import ProductDetail from "../pages/ProductDetail";
 import Login from "../pages/Login";
 import { Cart } from "../pages/Cart";
+import Checkout from "../pages/Checkout";
 import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import PrivateRoute from "./PrivateRoute";
@@ -34,6 +35,16 @@ const AppRouter = () => {
 
           {/* Giỏ hàng */}
           <Route path="cart" element={<Cart />} />
+          
+          {/* Thanh toán */}
+          <Route
+            path="checkout"
+            element={
+              <PrivateRoute>
+                <Checkout />
+              </PrivateRoute>
+            }
+          />
 
           {/* Auth routes - không cần đăng nhập */}
           <Route path="login" element={<Login />} />

@@ -10,6 +10,7 @@ const Cart = () => {
   const [error, setError] = useState("");
   const [updatingItems, setUpdatingItems] = useState(new Set());
   const [removingItems, setRemovingItems] = useState(new Set());
+  const [selectedItems, setSelectedItems] = useState(new Set());
 
   useEffect(() => {
     loadCart();
@@ -106,9 +107,55 @@ const Cart = () => {
   const calculateTotal = () => {
     if (!cart?.items) return 0;
     return cart.items.reduce((sum, item) => {
-      const lineTotal = parseFloat(item.line_total) || 0;
-      return sum + lineTotal;
+      if (selectedItems.has(item.id)) {
+        const lineTotal = parseFloat(item.line_total) || 0;
+        return sum + lineTotal;
+      }
+      return sum;
     }, 0);
+  };
+
+  const calculateSelectedQuantity = () => {
+    if (!cart?.items) return 0;
+    return cart.items.reduce((sum, item) => {
+      if (selectedItems.has(item.id)) {
+        return sum + (item.quantity || 0);
+      }
+      return sum;
+    }, 0);
+  };
+
+  const handleToggleSelectItem = (itemId) => {
+    setSelectedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (!cart?.items) return;
+    const allSelected = cart.items.every((item) => selectedItems.has(item.id));
+    if (allSelected) {
+      setSelectedItems(new Set());
+    } else {
+      const allItemIds = new Set(cart.items.map((item) => item.id));
+      setSelectedItems(allItemIds);
+    }
+  };
+
+  const handleCheckout = () => {
+    if (selectedItems.size === 0) {
+      setError("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
+      return;
+    }
+
+    const selectedItemIds = Array.from(selectedItems);
+    navigate("/checkout", { state: { cartItemIds: selectedItemIds } });
   };
 
   if (loading) {
@@ -185,6 +232,19 @@ const Cart = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Danh sách sản phẩm */}
         <div className="lg:col-span-2 space-y-4">
+          {/* Select All Checkbox */}
+          <div className="bg-white border rounded-lg p-4 shadow-sm flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={cart.items.length > 0 && cart.items.every((item) => selectedItems.has(item.id))}
+              onChange={handleSelectAll}
+              className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <label className="text-sm font-medium text-gray-700 cursor-pointer" onClick={handleSelectAll}>
+              Chọn tất cả ({selectedItems.size}/{cart.items.length})
+            </label>
+          </div>
+
           {cart.items.map((item) => {
             const isUpdating = updatingItems.has(item.id);
             const isRemoving = removingItems.has(item.id);
@@ -198,10 +258,21 @@ const Cart = () => {
                 }`}
               >
                 <div className="flex gap-4">
+                  {/* Checkbox */}
+                  <div className="shrink-0 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.has(item.id)}
+                      onChange={() => handleToggleSelectItem(item.id)}
+                      disabled={!item.is_available}
+                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50"
+                    />
+                  </div>
+
                   {/* Hình ảnh */}
                   <Link
                     to={`/products/${item.product.slug}`}
-                    className="flex-shrink-0"
+                    className="shrink-0"
                   >
                     <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
                       <img
@@ -348,12 +419,12 @@ const Cart = () => {
 
             <div className="space-y-3 mb-4">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Tổng sản phẩm:</span>
-                <span className="font-medium">{cart.total_quantity || 0}</span>
+                <span className="text-gray-600">Sản phẩm đã chọn:</span>
+                <span className="font-medium">{selectedItems.size}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Số lượng mặt hàng:</span>
-                <span className="font-medium">{cart.total_items || 0}</span>
+                <span className="text-gray-600">Số lượng đã chọn:</span>
+                <span className="font-medium">{calculateSelectedQuantity()}</span>
               </div>
             </div>
 
@@ -373,10 +444,11 @@ const Cart = () => {
             )}
 
             <button
-              onClick={() => navigate("/checkout")}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition mb-3"
+              onClick={handleCheckout}
+              disabled={selectedItems.size === 0}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Thanh toán
+              Thanh toán ({selectedItems.size})
             </button>
 
             <Link
