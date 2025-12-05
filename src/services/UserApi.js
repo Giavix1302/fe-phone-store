@@ -156,7 +156,6 @@ export const getAdminUserDetail = async (userId) => {
   return json?.data || {};
 };
 
-// Enable/Disable User (Admin)
 export const updateAdminUserStatus = async (userId, enabled, reason) => {
   const url = `${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/status`;
   const res = await fetch(url, {
@@ -168,19 +167,13 @@ export const updateAdminUserStatus = async (userId, enabled, reason) => {
     },
     body: JSON.stringify({ enabled, reason }),
   });
-
   const json = await res.json().catch(async () => {
     const text = await res.text().catch(() => "");
-    if (!res.ok) {
-      console.error("User status API error:", res.status, url, text);
-      throw new Error(text || `Không thể cập nhật trạng thái user (${res.status})`);
-    }
+    if (!res.ok) throw new Error(text || `Không thể cập nhật trạng thái (${res.status})`);
     return {};
   });
-
   if (!res.ok) {
-    console.error("User status API error:", res.status, url, json);
-    throw new Error(json?.message || `Không thể cập nhật trạng thái user (${res.status})`);
+    throw new Error(json?.message || `Không thể cập nhật trạng thái (${res.status})`);
   }
   return json?.data ?? null;
 };
