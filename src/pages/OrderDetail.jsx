@@ -11,6 +11,7 @@ const OrderDetail = () => {
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [cancelReasonType, setCancelReasonType] = useState("");
 
   useEffect(() => {
     loadOrderDetail();
@@ -30,17 +31,28 @@ const OrderDetail = () => {
   };
 
   const handleCancelOrder = async () => {
-    if (!cancelReason.trim()) {
-      alert("Vui lòng nhập lý do hủy đơn hàng.");
+    let reasonToSend = "";
+    
+    if (cancelReasonType === "OTHER") {
+      if (!cancelReason.trim()) {
+        alert("Vui lòng nhập lý do hủy đơn hàng.");
+        return;
+      }
+      reasonToSend = cancelReason.trim();
+    } else if (!cancelReasonType) {
+      alert("Vui lòng chọn lý do hủy đơn hàng.");
       return;
+    } else {
+      reasonToSend = cancelReasonType;
     }
 
     setCancelling(true);
     try {
-      await cancelOrder(orderNumber, { reason: cancelReason });
+      await cancelOrder(orderNumber, { reason: reasonToSend });
       alert("Hủy đơn hàng thành công!");
       setShowCancelModal(false);
       setCancelReason("");
+      setCancelReasonType("");
       loadOrderDetail(); // Reload để cập nhật trạng thái
     } catch (err) {
       alert(err.message || "Không thể hủy đơn hàng. Vui lòng thử lại.");
@@ -434,22 +446,100 @@ const OrderDetail = () => {
               Bạn có chắc chắn muốn hủy đơn hàng này không?
             </p>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
                 Lý do hủy đơn:
               </label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="Nhập lý do hủy đơn hàng..."
-              />
+              <div className="space-y-2">
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="CHANGE_ADDRESS"
+                    checked={cancelReasonType === "CHANGE_ADDRESS"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Muốn thay đổi địa chỉ giao hàng</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="CHANGE_PRODUCTS"
+                    checked={cancelReasonType === "CHANGE_PRODUCTS"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Muốn thay đổi sản phẩm trong đơn hàng</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="FOUND_CHEAPER"
+                    checked={cancelReasonType === "FOUND_CHEAPER"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Tìm thấy giá rẻ hơn chỗ khác</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="CHANGE_MIND"
+                    checked={cancelReasonType === "CHANGE_MIND"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Đổi ý không muốn mua nữa</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="OTHER"
+                    checked={cancelReasonType === "OTHER"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Khác</span>
+                </label>
+              </div>
+              
+              {cancelReasonType === "OTHER" && (
+                <div className="mt-3">
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Nhập lý do hủy đơn hàng..."
+                  />
+                </div>
+              )}
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => {
                   setShowCancelModal(false);
                   setCancelReason("");
+                  setCancelReasonType("");
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
                 disabled={cancelling}

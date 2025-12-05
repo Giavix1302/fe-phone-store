@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getUserOrders } from "../services/orderApi";
+import { getUserOrders, cancelOrder } from "../services/orderApi";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -19,6 +19,13 @@ const Orders = () => {
     limit: 10,
     status: "",
   });
+  
+  // Cancel order states
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelReasonType, setCancelReasonType] = useState("");
+  const [cancelingOrderNumber, setCancelingOrderNumber] = useState("");
 
   useEffect(() => {
     loadOrders();
@@ -83,6 +90,38 @@ const Orders = () => {
       ...prev,
       page: newPage,
     }));
+  };
+
+  const handleCancelOrder = async () => {
+    let reasonToSend = "";
+    
+    if (cancelReasonType === "OTHER") {
+      if (!cancelReason.trim()) {
+        alert("Vui lòng nhập lý do hủy đơn hàng.");
+        return;
+      }
+      reasonToSend = cancelReason.trim();
+    } else if (!cancelReasonType) {
+      alert("Vui lòng chọn lý do hủy đơn hàng.");
+      return;
+    } else {
+      reasonToSend = cancelReasonType;
+    }
+
+    setCancelling(true);
+    try {
+      await cancelOrder(cancelingOrderNumber, { reason: reasonToSend });
+      alert("Hủy đơn hàng thành công!");
+      setShowCancelModal(false);
+      setCancelReason("");
+      setCancelReasonType("");
+      setCancelingOrderNumber("");
+      loadOrders(); // Reload danh sách đơn hàng
+    } catch (err) {
+      alert(err.message || "Không thể hủy đơn hàng. Vui lòng thử lại.");
+    } finally {
+      setCancelling(false);
+    }
   };
 
   if (loading) {
@@ -297,8 +336,10 @@ const Orders = () => {
                       <button
                         className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition font-medium"
                         onClick={() => {
-                          // TODO: Implement cancel order
-                          alert("Tính năng hủy đơn hàng đang được phát triển");
+                          setCancelingOrderNumber(order.order_number);
+                          setShowCancelModal(true);
+                          setCancelReason("");
+                          setCancelReasonType("");
                         }}
                       >
                         Hủy đơn
@@ -332,6 +373,130 @@ const Orders = () => {
           >
             Sau
           </button>
+        </div>
+      )}
+
+      {/* Cancel Order Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              Hủy đơn hàng
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Bạn có chắc chắn muốn hủy đơn hàng này không?
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Lý do hủy đơn:
+              </label>
+              <div className="space-y-2">
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="CHANGE_ADDRESS"
+                    checked={cancelReasonType === "CHANGE_ADDRESS"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Muốn thay đổi địa chỉ giao hàng</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="CHANGE_PRODUCTS"
+                    checked={cancelReasonType === "CHANGE_PRODUCTS"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Muốn thay đổi sản phẩm trong đơn hàng</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="FOUND_CHEAPER"
+                    checked={cancelReasonType === "FOUND_CHEAPER"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Tìm thấy giá rẻ hơn chỗ khác</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="CHANGE_MIND"
+                    checked={cancelReasonType === "CHANGE_MIND"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Đổi ý không muốn mua nữa</span>
+                </label>
+                <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value="OTHER"
+                    checked={cancelReasonType === "OTHER"}
+                    onChange={(e) => {
+                      setCancelReasonType(e.target.value);
+                      setCancelReason("");
+                    }}
+                    className="mr-3"
+                  />
+                  <span className="text-sm text-gray-700">Khác</span>
+                </label>
+              </div>
+              
+              {cancelReasonType === "OTHER" && (
+                <div className="mt-3">
+                  <textarea
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    placeholder="Nhập lý do hủy đơn hàng..."
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason("");
+                  setCancelReasonType("");
+                  setCancelingOrderNumber("");
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition"
+                disabled={cancelling}
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition disabled:opacity-50"
+              >
+                {cancelling ? "Đang xử lý..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
