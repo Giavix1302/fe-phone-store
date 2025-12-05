@@ -15,6 +15,8 @@ import Register from "../pages/Register";
 import VerifyEmail from "../pages/VerifyEmail";
 import PrivateRoute from "./PrivateRoute";
 import Profile from "../pages/Profile";
+import Orders from "../pages/Orders";
+import OrderDetail from "../pages/OrderDetail";
 import NotFound from "../pages/NotFound";
 import AdminDashboard from "../pages/AdminDashboard";
 
@@ -57,6 +59,22 @@ const AppRouter = () => {
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="orders"
+            element={
+              <PrivateRoute>
+                <Orders />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="orders/:orderNumber"
+            element={
+              <PrivateRoute>
+                <OrderDetail />
               </PrivateRoute>
             }
           />

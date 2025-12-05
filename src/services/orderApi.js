@@ -41,7 +41,7 @@ export const createOrder = async (payload) => {
 /**
  * Lấy danh sách đơn hàng của người dùng
  * GET /api/orders
- * @param {{ page?: number; limit?: number; status?: string }} params
+ * @param {{ page?: number; limit?: number; status?: string; from_date?: string; to_date?: string; sort_by?: string; sort_order?: string }} params
  */
 export const getUserOrders = async (params = {}) => {
   const token = localStorage.getItem("token");
@@ -54,11 +54,16 @@ export const getUserOrders = async (params = {}) => {
   if (params.page) queryParams.append("page", params.page);
   if (params.limit) queryParams.append("limit", params.limit);
   if (params.status) queryParams.append("status", params.status);
+  if (params.from_date) queryParams.append("from_date", params.from_date);
+  if (params.to_date) queryParams.append("to_date", params.to_date);
+  if (params.sort_by) queryParams.append("sort_by", params.sort_by);
+  if (params.sort_order) queryParams.append("sort_order", params.sort_order);
 
   const response = await fetch(`${API_BASE_URL}/orders?${queryParams}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
     credentials: "include",
   });
@@ -73,6 +78,9 @@ export const getUserOrders = async (params = {}) => {
 
   return result?.data || null;
 };
+
+// Alias for backward compatibility
+export const fetchUserOrders = getUserOrders;
 
 /**
  * Lấy chi tiết đơn hàng
@@ -99,6 +107,42 @@ export const getOrderDetail = async (orderNumber) => {
   if (!response.ok) {
     const message =
       result?.message || "Không thể lấy chi tiết đơn hàng. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data || null;
+};
+
+// Alias for backward compatibility
+export const fetchOrderDetail = getOrderDetail;
+
+/**
+ * Hủy đơn hàng
+ * POST /api/orders/{order_number}/cancel
+ * @param {string} orderNumber
+ * @param {{ reason?: string }} payload
+ */
+export const cancelOrder = async (orderNumber, payload = {}) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Bạn cần đăng nhập để hủy đơn hàng.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/orders/${orderNumber}/cancel`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể hủy đơn hàng. Vui lòng thử lại sau.";
     throw new Error(message);
   }
 
