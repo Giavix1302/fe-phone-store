@@ -1,73 +1,78 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import Layout from "../layouts/Layout";
-import Home from "../pages/Home";
-import Products from "../pages/Products";
-import ProductDetail from "../pages/ProductDetail";
-import Login from "../pages/Login";
-import { Cart } from "../pages/Cart";
-import Register from "../pages/Register";
-import VerifyEmail from "../pages/VerifyEmail";
-import PrivateRoute from "./PrivateRoute";
-import Profile from "../pages/Profile";
-import NotFound from "../pages/NotFound";
-import AdminDashboard from "../pages/AdminDashboard";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-// Router configuration
-const AppRouter = () => {
+// Public pages
+import Login from "../pages/Login";
+import Register from "../pages/Register";
+import Home from "../pages/Home";
+import ProductDetail from "../pages/ProductDetail";
+import Profile from "../pages/Profile";
+import CartPage from "../pages/Cart";  // ✅ sửa đúng tên file
+import Products from "../pages/Products"; // nếu dùng trang list sản phẩm
+
+// Layouts
+import MainLayout from "../layouts/Layout";  // ❗ bạn dùng Layout.jsx (không phải MainLayout.jsx)
+import AdminLayout from "../layouts/AdminLayout";
+
+// Admin pages
+import AdminDashboard from "../pages/AdminDashboard";
+import AdminManagerProduct from "../pages/AdminManagerProduct";
+import AdminManagerOrder from "../pages/AdminManagerOrder";
+import AdminManagerUser from "../pages/AdminManagerUser";
+
+// Middlewares
+import PrivateRoute from "./PrivateRoute";
+
+export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Public routes with Layout */}
-        <Route path="/" element={<Layout />}>
-          {/* Trang chủ */}
+        {/* PUBLIC ROUTES */}
+        <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
-
-          {/* Sản phẩm */}
-          <Route path="products" element={<Products />} />
-          <Route path="products/:slug" element={<ProductDetail />} />
-          <Route path="products/category/:category" element={<Products />} />
-
-          {/* Giỏ hàng */}
-          <Route path="cart" element={<Cart />} />
-
-          {/* Auth routes - không cần đăng nhập */}
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
-          <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="products" element={<Products />} />
+          <Route path="product/:id" element={<ProductDetail />} />
 
-          {/* Private routes - cần đăng nhập */}
+          {/* Customer private routes */}
           <Route
             path="profile"
             element={
-              <PrivateRoute>
+              <PrivateRoute roles={["CUSTOMER"]}>
                 <Profile />
               </PrivateRoute>
             }
           />
+
           <Route
-            path="admin"
+            path="cart"
             element={
-              <PrivateRoute roles={["ADMIN"]}>
-                <AdminDashboard />
+              <PrivateRoute roles={["CUSTOMER"]}>
+                <CartPage />
               </PrivateRoute>
             }
           />
-
-          {/* Redirect old paths */}
-          <Route path="home" element={<Navigate to="/" replace />} />
-          <Route path="shop" element={<Navigate to="/products" replace />} />
         </Route>
 
-        {/* 404 Page - không có Layout */}
-        <Route path="*" element={<NotFound />} />
+        {/* ADMIN ROUTES */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute roles={["ADMIN"]}>
+              <AdminLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="products" element={<AdminManagerProduct />} />
+          <Route path="orders" element={<AdminManagerOrder />} />
+          <Route path="users" element={<AdminManagerUser />} />
+        </Route>
+
+        {/* NOT FOUND */}
+        <Route path="*" element={<h2>404 - Page Not Found</h2>} />
       </Routes>
     </Router>
   );
-};
-
-export default AppRouter;
+}

@@ -73,7 +73,7 @@ const Login = () => {
         email: formData.email.trim(),
         password: formData.password,
       });
-
+      console.log("Login response:", loginResponse);
       localStorage.setItem("token", loginResponse.access_token);
       localStorage.setItem("user", JSON.stringify(loginResponse.user));
 
@@ -86,9 +86,15 @@ const Login = () => {
         localStorage.removeItem("login_session");
       }
 
-      setTimeout(() => {
+      if(loginResponse.user.role === "ADMIN") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
         navigate(from, { replace: true });
-      }, 800);
+      }
+
+      // setTimeout(() => {
+      //   navigate(from, { replace: true });
+      // }, 800);
     } catch (error) {
       setApiError(error.message || "Đăng nhập thất bại, vui lòng thử lại.");
     } finally {

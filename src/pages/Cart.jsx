@@ -23,4 +23,5 @@ const Cart = () => {
   );
 };
 
+export default Cart;
 export { Cart };
