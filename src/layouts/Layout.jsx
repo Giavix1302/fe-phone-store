@@ -1,14 +1,13 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { logout as logoutApi, parseStoredUser, fetchCurrentUserProfile } from "../services/authApi";
-import { AUTH_CHANGED_EVENT, emitAuthChanged } from "../utils/authEvents";
+import { parseStoredUser, fetchCurrentUserProfile } from "../services/authApi";
+import { AUTH_CHANGED_EVENT } from "../utils/authEvents";
 import { CART_CHANGED_EVENT } from "../utils/cartEvents";
 import { getCartCount } from "../services/cartApi";
 
 const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [user, setUser] = useState(() => parseStoredUser());
   const [cartCount, setCartCount] = useState(0);
@@ -34,7 +33,7 @@ const Layout = () => {
     try {
       const count = await getCartCount();
       setCartCount(count);
-    } catch (err) {
+    } catch {
       setCartCount(0);
     }
   }, []);
@@ -104,15 +103,6 @@ const Layout = () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
     };
   }, [syncUserFromStorage, fetchAndUpdateAvatar]);
-
-
-  const handleLogout = async () => {
-    await logoutApi();
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    emitAuthChanged();
-    navigate("/");
-  };
 
   const isActive = (path) => {
     return (
