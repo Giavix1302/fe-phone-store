@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, Link } from "react-router-dom";
 import { fetchOrderDetail, cancelOrder } from "../services/orderApi";
+import OrderReviewModal from "../component/OrderReviewModal";
 
 const OrderDetail = () => {
   const { orderNumber } = useParams();
-  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -12,12 +12,9 @@ const OrderDetail = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelReasonType, setCancelReasonType] = useState("");
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
-  useEffect(() => {
-    loadOrderDetail();
-  }, [orderNumber]);
-
-  const loadOrderDetail = async () => {
+  const loadOrderDetail = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -28,7 +25,11 @@ const OrderDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [orderNumber]);
+
+  useEffect(() => {
+    loadOrderDetail();
+  }, [loadOrderDetail]);
 
   const handleCancelOrder = async () => {
     let reasonToSend = "";
@@ -181,9 +182,20 @@ const OrderDetail = () => {
         <div className="lg:col-span-2 space-y-6">
           {/* Order Items */}
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">
+            <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-center text-gray-800">
               Sản phẩm đã đặt
-            </h2>
+            </h2> 
+            {order.can_review && (
+              <button
+                className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition font-medium"
+                onClick={() => setShowReviewModal(true)}
+              >
+                Đánh giá sản phẩm
+              </button>
+            )}
+            </div>
+           
             <div className="space-y-4">
               {order.items && order.items.length > 0 ? (
                 order.items.map((item) => (
@@ -199,12 +211,19 @@ const OrderDetail = () => {
                       />
                     )}
                     <div className="flex-1">
-                      <Link
-                        to={`/products/${item.product?.slug}`}
-                        className="text-lg font-semibold text-gray-800 hover:text-blue-600 transition"
-                      >
-                        {item.product?.name || "Sản phẩm"}
-                      </Link>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          to={`/products/${item.product?.slug}`}
+                          className="text-lg font-semibold text-gray-800 hover:text-blue-600 transition"
+                        >
+                          {item.product?.name || "Sản phẩm"}
+                        </Link>
+                        {item.is_reviewed && (
+                          <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                            Đã đánh giá
+                          </span>
+                        )}
+                      </div>
                       {item.color_name && (
                         <p className="text-sm text-gray-600 mt-1">
                           Màu: {item.color_name}
@@ -244,7 +263,7 @@ const OrderDetail = () => {
                     key={index}
                     className="flex items-start gap-4 pb-3 border-b border-gray-200 last:border-0"
                   >
-                    <div className="flex-shrink-0 w-3 h-3 rounded-full bg-blue-500 mt-2"></div>
+                    <div className="shrink-0 w-3 h-3 rounded-full bg-blue-500 mt-2"></div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span
@@ -420,17 +439,6 @@ const OrderDetail = () => {
                 Hủy đơn hàng
               </button>
             )}
-            {order.can_review && (
-              <button
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition font-medium"
-                onClick={() => {
-                  // TODO: Navigate to review page
-                  alert("Tính năng đánh giá đang được phát triển");
-                }}
-              >
-                Đánh giá sản phẩm
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -556,6 +564,18 @@ const OrderDetail = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <OrderReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          order={order}
+          onSuccess={() => {
+            loadOrderDetail(); 
+          }}
+        />
       )}
     </div>
   );

@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCart, updateQuantity, removeItem, clearCart } from "../services/cartApi";
 import { emitCartChanged } from "../utils/cartEvents";
+import { 
+  updateGuestCartQuantity, 
+  removeFromGuestCart, 
+  clearGuestCart 
+} from "../utils/guestCart";
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -21,7 +26,21 @@ const Cart = () => {
     setError("");
     try {
       const data = await getCart();
-      setCart(data);
+      
+      // If guest cart, fetch product details for each item
+      if (data?.isGuest && data?.items) {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          // For guest cart, we'll show basic info
+          // Product details will be fetched when needed or user can click to view
+          setCart(data);
+        } else {
+          // User logged in but got guest cart - shouldn't happen, but handle it
+          setCart(data);
+        }
+      } else {
+        setCart(data);
+      }
     } catch (err) {
       setError(err.message || "Không thể tải giỏ hàng. Vui lòng thử lại sau.");
       setCart(null);
@@ -43,6 +62,31 @@ const Cart = () => {
     const item = cart?.items?.find((i) => i.id === itemId);
     if (!item) return;
 
+    // Check if guest cart
+    if (cart?.isGuest) {
+      // Update guest cart
+      const guestCart = updateGuestCartQuantity(
+        item.product_id,
+        item.color_id,
+        newQuantity
+      );
+      setCart({
+        ...cart,
+        items: guestCart.map((cartItem, index) => ({
+          id: `guest-${index}`,
+          product_id: cartItem.product_id,
+          color_id: cartItem.color_id,
+          quantity: cartItem.quantity,
+        })),
+        total_items: guestCart.length,
+        total_quantity: guestCart.reduce((sum, item) => sum + item.quantity, 0),
+        isGuest: true,
+      });
+      emitCartChanged();
+      return;
+    }
+
+    // Authenticated cart
     if (newQuantity > item.product.stock_quantity) {
       setError(`Số lượng tối đa là ${item.product.stock_quantity}`);
       return;
@@ -71,6 +115,30 @@ const Cart = () => {
       return;
     }
 
+    const item = cart?.items?.find((i) => i.id === itemId);
+    if (!item) return;
+
+    // Check if guest cart
+    if (cart?.isGuest) {
+      // Remove from guest cart
+      const guestCart = removeFromGuestCart(item.product_id, item.color_id);
+      setCart({
+        ...cart,
+        items: guestCart.map((cartItem, index) => ({
+          id: `guest-${index}`,
+          product_id: cartItem.product_id,
+          color_id: cartItem.color_id,
+          quantity: cartItem.quantity,
+        })),
+        total_items: guestCart.length,
+        total_quantity: guestCart.reduce((sum, item) => sum + item.quantity, 0),
+        isGuest: true,
+      });
+      emitCartChanged();
+      return;
+    }
+
+    // Authenticated cart
     setRemovingItems((prev) => new Set(prev).add(itemId));
     setError("");
 
@@ -95,6 +163,16 @@ const Cart = () => {
     }
 
     setError("");
+    
+    // Check if guest cart
+    if (cart?.isGuest) {
+      clearGuestCart();
+      setCart({ items: [], total_items: 0, total_quantity: 0, isGuest: true });
+      emitCartChanged();
+      return;
+    }
+
+    // Authenticated cart
     try {
       await clearCart();
       await loadCart();
@@ -106,6 +184,12 @@ const Cart = () => {
 
   const calculateTotal = () => {
     if (!cart?.items) return 0;
+    
+    // Guest cart doesn't have line_total, return 0 or show message
+    if (cart.isGuest) {
+      return 0; // Can't calculate total without product prices
+    }
+    
     return cart.items.reduce((sum, item) => {
       if (selectedItems.has(item.id)) {
         const lineTotal = parseFloat(item.line_total) || 0;
@@ -151,6 +235,13 @@ const Cart = () => {
   const handleCheckout = () => {
     if (selectedItems.size === 0) {
       setError("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
+      return;
+    }
+
+    // Check if guest cart
+    if (cart?.isGuest) {
+      setError("Vui lòng đăng nhập để thanh toán");
+      navigate("/login", { state: { from: { pathname: "/cart" } } });
       return;
     }
 
@@ -223,6 +314,28 @@ const Cart = () => {
         )}
       </div>
 
+      {/* Guest cart notice */}
+      {cart.isGuest && (
+        <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-yellow-800 font-medium">
+                Bạn đang xem giỏ hàng tạm thời
+              </p>
+              <p className="text-yellow-700 text-sm mt-1">
+                Đăng nhập để lưu giỏ hàng và tiếp tục thanh toán
+              </p>
+            </div>
+            <Link
+              to="/login"
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+            >
+              Đăng nhập
+            </Link>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
           {error}
@@ -249,12 +362,13 @@ const Cart = () => {
             const isUpdating = updatingItems.has(item.id);
             const isRemoving = removingItems.has(item.id);
             const isDisabled = isUpdating || isRemoving;
+            const isGuestItem = cart.isGuest || !item.product;
 
             return (
               <div
                 key={item.id}
                 className={`bg-white border rounded-lg p-4 shadow-sm ${
-                  !item.is_available ? "opacity-60" : ""
+                  !item.is_available && !isGuestItem ? "opacity-60" : ""
                 }`}
               >
                 <div className="flex gap-4">
@@ -264,38 +378,57 @@ const Cart = () => {
                       type="checkbox"
                       checked={selectedItems.has(item.id)}
                       onChange={() => handleToggleSelectItem(item.id)}
-                      disabled={!item.is_available}
+                      disabled={isGuestItem || (!item.is_available && !isGuestItem)}
                       className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-50"
                     />
                   </div>
 
                   {/* Hình ảnh */}
-                  <Link
-                    to={`/products/${item.product.slug}`}
-                    className="shrink-0"
-                  >
-                    <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={item.product.primary_image || "/placeholder.jpg"}
-                        alt={item.product.name}
-                        className="w-full h-full object-cover"
-                      />
+                  {isGuestItem ? (
+                    <div className="shrink-0">
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                        <span className="text-gray-400 text-2xl">📦</span>
+                      </div>
                     </div>
-                  </Link>
+                  ) : (
+                    <Link
+                      to={`/products/${item.product.slug}`}
+                      className="shrink-0"
+                    >
+                      <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={item.product.primary_image || "/placeholder.jpg"}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </Link>
+                  )}
 
                   {/* Thông tin sản phẩm */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <Link
-                          to={`/products/${item.product.slug}`}
-                          className="text-lg font-semibold hover:text-blue-600 transition"
-                        >
-                          {item.product.name}
-                        </Link>
+                        {isGuestItem ? (
+                          <div>
+                            <p className="text-lg font-semibold text-gray-700">
+                              Sản phẩm ID: {item.product_id}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-1">
+                              Vui lòng đăng nhập để xem chi tiết sản phẩm
+                            </p>
+                          </div>
+                        ) : (
+                          <Link
+                            to={`/products/${item.product.slug}`}
+                            className="text-lg font-semibold hover:text-blue-600 transition"
+                          >
+                            {item.product.name}
+                          </Link>
+                        )}
 
                         {/* Màu sắc */}
-                        {item.color && (
+                        {!isGuestItem && item.color && (
                           <div className="mt-2 flex items-center gap-2">
                             <span className="text-sm text-gray-600">Màu:</span>
                             <div className="flex items-center gap-2">
@@ -310,15 +443,25 @@ const Cart = () => {
                           </div>
                         )}
 
+                        {isGuestItem && (
+                          <div className="mt-2">
+                            <span className="text-sm text-gray-600">
+                              Màu ID: {item.color_id}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Giá */}
-                        <div className="mt-2">
-                          <span className="text-lg font-bold text-red-600">
-                            {formatPrice(item.unit_price)}
-                          </span>
-                        </div>
+                        {!isGuestItem && (
+                          <div className="mt-2">
+                            <span className="text-lg font-bold text-red-600">
+                              {formatPrice(item.unit_price)}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Trạng thái */}
-                        {!item.is_available && (
+                        {!isGuestItem && !item.is_available && (
                           <div className="mt-2">
                             <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
                               {item.stock_status || "Không còn hàng"}
@@ -376,7 +519,7 @@ const Cart = () => {
                               handleQuantityChange(item.id, newQty);
                             }}
                             min="1"
-                            max={item.product.stock_quantity}
+                            max={isGuestItem ? 999 : item.product?.stock_quantity}
                             disabled={isDisabled}
                             className="w-16 text-center border rounded-lg py-1 text-sm disabled:opacity-50"
                           />
@@ -386,7 +529,7 @@ const Cart = () => {
                             }
                             disabled={
                               isDisabled ||
-                              item.quantity >= item.product.stock_quantity
+                              (!isGuestItem && item.quantity >= item.product?.stock_quantity)
                             }
                             className="w-8 h-8 rounded-lg border flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -399,10 +542,18 @@ const Cart = () => {
                       </div>
 
                       <div className="text-right">
-                        <div className="text-sm text-gray-600">Thành tiền:</div>
-                        <div className="text-lg font-bold text-red-600">
-                          {formatPrice(item.line_total)}
-                        </div>
+                        {isGuestItem ? (
+                          <div className="text-sm text-gray-500">
+                            Đăng nhập để xem giá
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-sm text-gray-600">Thành tiền:</div>
+                            <div className="text-lg font-bold text-red-600">
+                              {formatPrice(item.line_total)}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

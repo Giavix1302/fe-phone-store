@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { login as loginApi } from "../services/authApi";
+import { login as loginApi, syncGuestCartAfterLogin } from "../services/authApi";
 import { emitAuthChanged } from "../utils/authEvents";
+import { emitCartChanged } from "../utils/cartEvents";
 
 const initialFormState = {
   email: "",
@@ -78,6 +79,15 @@ const Login = () => {
       localStorage.setItem("user", JSON.stringify(loginResponse.user));
 
       emitAuthChanged();
+      
+      // Sync guest cart after login
+      try {
+        await syncGuestCartAfterLogin();
+        emitCartChanged(); // Notify cart changed after sync
+      } catch (error) {
+        console.warn("Could not sync guest cart:", error);
+      }
+
       setSuccessMessage("Đăng nhập thành công! Đang chuyển hướng...");
 
       if (!formData.rememberMe) {

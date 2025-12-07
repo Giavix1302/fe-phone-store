@@ -75,11 +75,17 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
         setError("");
 
         try {
-            await addToCart({
+            const result = await addToCart({
                 product_id: product.id,
                 color_id: selectedColor,
                 quantity: quantity,
             });
+
+            // If guest cart, show message
+            if (result?.isGuest) {
+                // Guest cart - item saved to localStorage
+                // Show success message
+            }
 
             emitCartChanged();
 
@@ -125,7 +131,7 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
                 <div className="p-4 space-y-4">
                     {/* Hình & Tên */}
                     <div className="flex gap-4">
-                        <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                             <img
                                 src={getProductImage()}
                                 alt={product.name}
