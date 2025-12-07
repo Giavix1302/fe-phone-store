@@ -71,7 +71,7 @@ export default function AppRouter() {
           <Route
             path="profile"
             element={
-              <PrivateRoute roles={["CUSTOMER"]}>
+              <PrivateRoute roles={["USER", "ADMIN"]}>
                 <Profile />
               </PrivateRoute>
             }
@@ -99,7 +99,7 @@ export default function AppRouter() {
           <Route
             path="cart"
             element={
-              <PrivateRoute roles={["CUSTOMER"]}>
+              <PrivateRoute roles={["USER", "ADMIN"]}>
                 <CartPage />
               </PrivateRoute>
             }
