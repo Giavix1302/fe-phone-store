@@ -18,7 +18,13 @@ const statusFlow = {
   CANCELLED: [],
 };
 
-const allStatuses = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
+const allStatuses = [
+  "PENDING",
+  "PROCESSING",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+];
 
 export default function AdminManagerOrder() {
   const [orders, setOrders] = useState([]);
@@ -40,6 +46,7 @@ export default function AdminManagerOrder() {
     setLoading(true);
     try {
       const res = await getAdminOrders({ search, status, page, limit });
+      console.log("🚀 ~ fetchOrders ~ res:", res);
       setOrders(res.data.orders);
       setPagination(res.data.pagination);
       setSummary(res.data.summary || null);
@@ -52,6 +59,15 @@ export default function AdminManagerOrder() {
   useEffect(() => {
     fetchOrders();
   }, [search, status, page]);
+
+  function formatIsoToVN(isoString) {
+    const [datePart, timePart] = isoString.replace("Z", "").split("T");
+
+    const [year, month, day] = datePart.split("-");
+    const [hour, minute, second] = timePart.split(":");
+
+    return `${day}/${month}/${year} ${hour}:${minute}:${second}`;
+  }
 
   const handleUpdateStatus = async () => {
     if (!selectedOrder) return;
@@ -121,27 +137,39 @@ export default function AdminManagerOrder() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
           <div className="p-4 rounded-xl bg-white shadow-sm border border-slate-200">
             <div className="text-xs text-slate-500">Tổng đơn</div>
-            <div className="text-2xl font-semibold text-slate-800">{summary.total_orders}</div>
+            <div className="text-2xl font-semibold text-slate-800">
+              {summary.total_orders}
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-yellow-50 shadow-sm border border-yellow-200">
             <div className="text-xs text-yellow-700">Đang chờ</div>
-            <div className="text-2xl font-semibold text-yellow-800">{summary.pending_orders}</div>
+            <div className="text-2xl font-semibold text-yellow-800">
+              {summary.pending_orders}
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-blue-50 shadow-sm border border-blue-200">
             <div className="text-xs text-blue-700">Đang xử lý</div>
-            <div className="text-2xl font-semibold text-blue-800">{summary.processing_orders}</div>
+            <div className="text-2xl font-semibold text-blue-800">
+              {summary.processing_orders}
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-violet-50 shadow-sm border border-violet-200">
             <div className="text-xs text-violet-700">Đã gửi</div>
-            <div className="text-2xl font-semibold text-violet-800">{summary.shipped_orders ?? 0}</div>
+            <div className="text-2xl font-semibold text-violet-800">
+              {summary.shipped_orders ?? 0}
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-emerald-50 shadow-sm border border-emerald-200">
             <div className="text-xs text-emerald-700">Đã giao</div>
-            <div className="text-2xl font-semibold text-emerald-800">{summary.delivered_orders}</div>
+            <div className="text-2xl font-semibold text-emerald-800">
+              {summary.delivered_orders}
+            </div>
           </div>
           <div className="p-4 rounded-xl bg-rose-50 shadow-sm border border-rose-200">
             <div className="text-xs text-rose-700">Đã hủy</div>
-            <div className="text-2xl font-semibold text-rose-800">{summary.cancelled_orders}</div>
+            <div className="text-2xl font-semibold text-rose-800">
+              {summary.cancelled_orders}
+            </div>
           </div>
           <div className="md:col-span-6 p-4 rounded-xl bg-white shadow-sm border border-slate-200">
             <div className="text-xs text-slate-500">Doanh thu</div>
@@ -210,10 +238,16 @@ export default function AdminManagerOrder() {
                     idx % 2 === 1 ? "bg-slate-50/40" : "bg-white"
                   }`}
                 >
-                  <td className="p-3 font-medium text-slate-800">{order.order_number}</td>
+                  <td className="p-3 font-medium text-slate-800">
+                    {order.order_number}
+                  </td>
                   <td className="p-3">
-                    <div className="text-slate-800">{order.user?.full_name}</div>
-                    <div className="text-slate-500 text-xs">{order.user?.email}</div>
+                    <div className="text-slate-800">
+                      {order.user?.full_name}
+                    </div>
+                    <div className="text-slate-500 text-xs">
+                      {order.user?.email}
+                    </div>
                   </td>
                   <td className="p-3 text-slate-700">{order.items_count}</td>
                   <td className="p-3 text-slate-800">
@@ -221,24 +255,38 @@ export default function AdminManagerOrder() {
                   </td>
                   <td className="p-3 text-slate-700">{order.payment_method}</td>
                   <td className="p-3">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 ${statusColor[order.status]}`}>
+                    <span
+                      className={`px-2 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 ${
+                        statusColor[order.status]
+                      }`}
+                    >
                       <span className="w-2 h-2 rounded-full bg-current opacity-60"></span>
                       {order.status}
                     </span>
                   </td>
                   <td className="p-3 text-slate-700">
-                    {order.created_at ? format(new Date(order.created_at), "dd/MM/yyyy HH:mm") : "-"}
+                    {order.created_at ? formatIsoToVN(order.created_at) : "-"}
                   </td>
-                  <td className="p-3 text-slate-700">{order.user?.phone || "-"}</td>
-                  <td className="p-3 text-slate-700">{order.shipping_address || "-"}</td>
+                  <td className="p-3 text-slate-700">
+                    {order.user?.phone || "-"}
+                  </td>
+                  <td className="p-3 text-slate-700">
+                    {order.shipping_address || "-"}
+                  </td>
                   <td className="p-3 text-center">
                     <button
                       className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition"
                       onClick={() => {
                         setSelectedOrder(order);
                         // chọn mặc định tiếp theo hoặc current
-                        const nextMap = { PENDING: "PROCESSING", PROCESSING: "SHIPPED", SHIPPED: "DELIVERED" };
-                        setUpdateStatus(nextMap[order.status] || order.status || "PENDING");
+                        const nextMap = {
+                          PENDING: "PROCESSING",
+                          PROCESSING: "SHIPPED",
+                          SHIPPED: "DELIVERED",
+                        };
+                        setUpdateStatus(
+                          nextMap[order.status] || order.status || "PENDING"
+                        );
                       }}
                     >
                       Cập nhật
@@ -277,12 +325,18 @@ export default function AdminManagerOrder() {
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center p-4 z-50">
           <div className="bg-white rounded-2xl w-[420px] shadow-xl overflow-hidden border border-slate-200">
             <div className="px-6 py-4 bg-gradient-to-r from-slate-800 to-slate-600 text-white">
-              <h3 className="text-lg font-semibold">Cập nhật trạng thái đơn hàng</h3>
-              <p className="text-xs opacity-90 mt-1">{selectedOrder.order_number}</p>
+              <h3 className="text-lg font-semibold">
+                Cập nhật trạng thái đơn hàng
+              </h3>
+              <p className="text-xs opacity-90 mt-1">
+                {selectedOrder.order_number}
+              </p>
             </div>
 
             <div className="px-6 py-5">
-              <label className="text-sm text-slate-700 mb-1 block">Trạng thái</label>
+              <label className="text-sm text-slate-700 mb-1 block">
+                Trạng thái
+              </label>
               <select
                 className="border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 px-3 py-2 rounded-lg w-full mb-3 bg-white shadow-sm"
                 value={updateStatus}
@@ -295,7 +349,9 @@ export default function AdminManagerOrder() {
                 ))}
               </select>
 
-              <label className="text-sm text-slate-700 mb-1 block">Ghi chú</label>
+              <label className="text-sm text-slate-700 mb-1 block">
+                Ghi chú
+              </label>
               <textarea
                 className="border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 px-3 py-2 rounded-lg w-full mb-3 bg-white shadow-sm"
                 placeholder="Ghi chú"
@@ -305,7 +361,9 @@ export default function AdminManagerOrder() {
 
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Mã vận đơn</label>
+                  <label className="text-sm text-slate-700 mb-1 block">
+                    Mã vận đơn
+                  </label>
                   <input
                     className="border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 px-3 py-2 rounded-lg w-full bg-white shadow-sm"
                     placeholder="Mã vận đơn"
@@ -315,7 +373,9 @@ export default function AdminManagerOrder() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Đối tác vận chuyển</label>
+                  <label className="text-sm text-slate-700 mb-1 block">
+                    Đối tác vận chuyển
+                  </label>
                   <input
                     className="border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 px-3 py-2 rounded-lg w-full bg-white shadow-sm"
                     placeholder="Đối tác vận chuyển"
@@ -325,7 +385,9 @@ export default function AdminManagerOrder() {
                 </div>
 
                 <div>
-                  <label className="text-sm text-slate-700 mb-1 block">Dự kiến giao</label>
+                  <label className="text-sm text-slate-700 mb-1 block">
+                    Dự kiến giao
+                  </label>
                   <input
                     type="datetime-local"
                     className="border border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-200 px-3 py-2 rounded-lg w-full bg-white shadow-sm"

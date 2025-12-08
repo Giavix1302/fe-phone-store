@@ -1,8 +1,11 @@
 // src/pages/AdminManagerProduct.jsx
 import React, { useEffect, useMemo, useState } from "react";
 
-const API_BASE = "https://api.phone.sitedemo.io.vn";
-const currency = (v) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v || 0);
+const API_BASE = "http://localhost:8080/api";
+const currency = (v) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+    v || 0
+  );
 const getAdminToken = () => localStorage.getItem("token") || "";
 
 export default function AdminManagerProduct() {
@@ -52,7 +55,8 @@ export default function AdminManagerProduct() {
     if (!json) return [];
     if (Array.isArray(json)) return json;
     if (Array.isArray(json.data)) return json.data;
-    if (json.data && Array.isArray(json.data[keyAlternative])) return json.data[keyAlternative];
+    if (json.data && Array.isArray(json.data[keyAlternative]))
+      return json.data[keyAlternative];
     if (Array.isArray(json.colors)) return json.colors;
     if (Array.isArray(json.brands)) return json.brands;
     return [];
@@ -63,13 +67,24 @@ export default function AdminManagerProduct() {
     try {
       const token = getAdminToken();
       const params = new URLSearchParams();
-      if (status !== "all") params.append("is_active", status === "active" ? "true" : "false");
-      const res = await fetch(`${API_BASE}/api/admin/products?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      });
+      if (status !== "all")
+        params.append("is_active", status === "active" ? "true" : "false");
+      const res = await fetch(
+        `${API_BASE}/api/admin/products?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
       if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
       const json = await res.json();
-      const list = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+      const list = Array.isArray(json.data)
+        ? json.data
+        : Array.isArray(json)
+        ? json
+        : [];
       setProducts(list);
     } catch (err) {
       console.error("fetchProducts error", err);
@@ -82,9 +97,15 @@ export default function AdminManagerProduct() {
   const fetchCategories = async () => {
     try {
       const token = getAdminToken();
-      const res = await fetch(`${API_BASE}/api/admin/categories?page=1&limit=200`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
-      });
+      const res = await fetch(
+        `${API_BASE}/api/admin/categories?page=1&limit=200`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
       if (!res.ok) return;
       const json = await res.json();
       setCategories(parseListFromResponse(json, "categories"));
@@ -97,7 +118,10 @@ export default function AdminManagerProduct() {
     try {
       const token = getAdminToken();
       const res = await fetch(`${API_BASE}/api/admin/brands?page=1&limit=200`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
       if (!res.ok) return;
       const json = await res.json();
@@ -111,7 +135,10 @@ export default function AdminManagerProduct() {
     try {
       const token = getAdminToken();
       const res = await fetch(`${API_BASE}/api/admin/colors?page=1&limit=200`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
       if (!res.ok) {
         console.warn("fetchColors non-ok", res.status);
@@ -121,15 +148,24 @@ export default function AdminManagerProduct() {
       let list = [];
       if (Array.isArray(json)) list = json;
       else if (Array.isArray(json.data)) list = json.data;
-      else if (json?.data?.colors && Array.isArray(json.data.colors)) list = json.data.colors;
+      else if (json?.data?.colors && Array.isArray(json.data.colors))
+        list = json.data.colors;
       else if (Array.isArray(json.colors)) list = json.colors;
-      else if (json?.data?.items && Array.isArray(json.data.items)) list = json.data.items;
+      else if (json?.data?.items && Array.isArray(json.data.items))
+        list = json.data.items;
 
-      const normalized = list.map((c) => ({
-        id: c.id ?? c._id ?? c.value,
-        name: c.color_name ?? c.name ?? c.title ?? c.label ?? `Màu #${c.id ?? c._id ?? ""}`,
-        hex: c.hex_code ?? c.hex ?? c.code ?? "",
-      })).filter((c) => c.id);
+      const normalized = list
+        .map((c) => ({
+          id: c.id ?? c._id ?? c.value,
+          name:
+            c.color_name ??
+            c.name ??
+            c.title ??
+            c.label ??
+            `Màu #${c.id ?? c._id ?? ""}`,
+          hex: c.hex_code ?? c.hex ?? c.code ?? "",
+        }))
+        .filter((c) => c.id);
       setColors(normalized);
     } catch (err) {
       console.error("Lỗi fetch colors:", err);
@@ -155,7 +191,10 @@ export default function AdminManagerProduct() {
     const total = products.length;
     const active = products.filter((p) => !!p.is_active).length;
     const inactive = total - active;
-    const stockTotal = products.reduce((s, p) => s + Number(p.stock_quantity || 0), 0);
+    const stockTotal = products.reduce(
+      (s, p) => s + Number(p.stock_quantity || 0),
+      0
+    );
     const inventoryValue = products.reduce((s, p) => {
       const priceEff = Number(p.discount_price || p.price || 0);
       return s + priceEff * Number(p.stock_quantity || 0);
@@ -177,17 +216,27 @@ export default function AdminManagerProduct() {
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter((p) =>
-        [String(p.id), p.name || "", p.slug || "", p.brand?.name || p.brand_id || ""]
+        [
+          String(p.id),
+          p.name || "",
+          p.slug || "",
+          p.brand?.name || p.brand_id || "",
+        ]
           .join(" ")
           .toLowerCase()
           .includes(q)
       );
     }
     if (categoryFilter) {
-      list = list.filter((p) => String(p.category_id ?? p.category?.id) === String(categoryFilter));
+      list = list.filter(
+        (p) =>
+          String(p.category_id ?? p.category?.id) === String(categoryFilter)
+      );
     }
     if (brandFilter) {
-      list = list.filter((p) => String(p.brand_id ?? p.brand?.id) === String(brandFilter));
+      list = list.filter(
+        (p) => String(p.brand_id ?? p.brand?.id) === String(brandFilter)
+      );
     }
     return list;
   }, [products, query, categoryFilter, brandFilter]);
@@ -218,9 +267,12 @@ export default function AdminManagerProduct() {
   const openEdit = (product) => {
     setEditing(product);
     setFormErrors({});
-    const categoryId = product.category_id ?? product.categoryId ?? product.category?.id ?? "";
-    const brandId = product.brand_id ?? product.brandId ?? product.brand?.id ?? "";
-    const colorId = product.color_id ?? product.colorId ?? product.color?.id ?? "";
+    const categoryId =
+      product.category_id ?? product.categoryId ?? product.category?.id ?? "";
+    const brandId =
+      product.brand_id ?? product.brandId ?? product.brand?.id ?? "";
+    const colorId =
+      product.color_id ?? product.colorId ?? product.color?.id ?? "";
 
     setForm({
       name: product.name || "",
@@ -231,7 +283,9 @@ export default function AdminManagerProduct() {
       category_id: categoryId,
       brand_id: brandId,
       color_id: colorId,
-      color_ids: Array.isArray(product.color_ids) ? product.color_ids.map(String) : [],
+      color_ids: Array.isArray(product.color_ids)
+        ? product.color_ids.map(String)
+        : [],
       images: [],
       image_alts: [],
       primary_image_index: 0,
@@ -249,12 +303,15 @@ export default function AdminManagerProduct() {
 
   const validateForm = () => {
     const errs = {};
-    if (!form.name || !String(form.name).trim()) errs.name = "Tên sản phẩm bắt buộc";
-    if (form.price === "" || Number(form.price) < 0) errs.price = "Giá không hợp lệ";
+    if (!form.name || !String(form.name).trim())
+      errs.name = "Tên sản phẩm bắt buộc";
+    if (form.price === "" || Number(form.price) < 0)
+      errs.price = "Giá không hợp lệ";
     if (!form.category_id) errs.category_id = "Danh mục bắt buộc";
     if (!form.brand_id) errs.brand_id = "Thương hiệu bắt buộc";
     if (!form.color_id) errs.color_id = "Màu mặc định bắt buộc";
-    if (!editing && (!form.images || form.images.length === 0)) errs.images = "Cần ít nhất 1 hình ảnh";
+    if (!editing && (!form.images || form.images.length === 0))
+      errs.images = "Cần ít nhất 1 hình ảnh";
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -286,7 +343,10 @@ export default function AdminManagerProduct() {
           "Content-Type": "application/json",
         },
         // BE expects snake_case
-        body: JSON.stringify({ stock_quantity: Number(newStock), operation: "set" }),
+        body: JSON.stringify({
+          stock_quantity: Number(newStock),
+          operation: "set",
+        }),
       });
       if (!res.ok) throw new Error(`Stock failed: ${res.status}`);
       await fetchProducts();
@@ -299,13 +359,17 @@ export default function AdminManagerProduct() {
   const toggleActive = async (p) => {
     try {
       const token = getAdminToken();
-      const category_id = Number(p.category_id ?? p.categoryId ?? p.category?.id);
+      const category_id = Number(
+        p.category_id ?? p.categoryId ?? p.category?.id
+      );
       const brand_id = Number(p.brand_id ?? p.brandId ?? p.brand?.id);
       const color_id_raw = p.color_id ?? p.colorId ?? p.color?.id;
       const color_id = color_id_raw != null ? Number(color_id_raw) : undefined;
 
       if (!category_id || !brand_id || !color_id) {
-        alert("Sản phẩm thiếu Danh mục/Thương hiệu/Màu mặc định. Vui lòng mở 'Sửa' và chọn đầy đủ.");
+        alert(
+          "Sản phẩm thiếu Danh mục/Thương hiệu/Màu mặc định. Vui lòng mở 'Sửa' và chọn đầy đủ."
+        );
         return;
       }
 
@@ -356,14 +420,17 @@ export default function AdminManagerProduct() {
         };
         if (form.color_id) payload.color_id = Number(form.color_id);
 
-        const res = await fetch(`${API_BASE}/api/admin/products/${editing.id}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+        const res = await fetch(
+          `${API_BASE}/api/admin/products/${editing.id}`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
         if (!res.ok) {
           const text = await res.text();
           console.error("update failed:", res.status, text);
@@ -386,10 +453,20 @@ export default function AdminManagerProduct() {
           is_active: !!form.is_active,
           primary_image_index: Number(form.primary_image_index || 0),
         };
-        fd.append("product", new Blob([JSON.stringify(productPayload)], { type: "application/json" }));
+        fd.append(
+          "product",
+          new Blob([JSON.stringify(productPayload)], {
+            type: "application/json",
+          })
+        );
         (form.images || []).forEach((file) => fd.append("images", file));
         if (Array.isArray(form.image_alts) && form.image_alts.length > 0) {
-          fd.append("image_alts", new Blob([JSON.stringify(form.image_alts)], { type: "application/json" }));
+          fd.append(
+            "image_alts",
+            new Blob([JSON.stringify(form.image_alts)], {
+              type: "application/json",
+            })
+          );
         }
 
         const res = await fetch(`${API_BASE}/api/admin/products`, {
@@ -425,7 +502,12 @@ export default function AdminManagerProduct() {
     objectUrls.forEach((u) => URL.revokeObjectURL(u));
     const newUrls = files.map((f) => URL.createObjectURL(f));
     setObjectUrls(newUrls);
-    setForm((f) => ({ ...f, images: files, image_alts: files.map(() => ""), primary_image_index: 0 }));
+    setForm((f) => ({
+      ...f,
+      images: files,
+      image_alts: files.map(() => ""),
+      primary_image_index: 0,
+    }));
   };
 
   const setAltAt = (idx, value) => {
@@ -465,39 +547,67 @@ export default function AdminManagerProduct() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Quản lý sản phẩm</h1>
-          <p className="text-sm text-slate-500 mt-1">Tìm kiếm, lọc, tồn kho, bật/tắt, thêm/sửa/xóa.</p>
+          <h1 className="text-3xl font-bold text-slate-800">
+            Quản lý sản phẩm
+          </h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Tìm kiếm, lọc, tồn kho, bật/tắt, thêm/sửa/xóa.
+          </p>
         </div>
-        <div className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 font-medium">Admin Panel</div>
+        <div className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 font-medium">
+          Admin Panel
+        </div>
       </div>
 
       {/* Overview cards - Balanced sizes */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
         <div className="rounded-xl border border-slate-200 p-4 bg-white shadow-sm">
-          <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">Tổng sản phẩm</div>
-          <div className="text-3xl font-bold text-slate-900">{overview.total}</div>
+          <div className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">
+            Tổng sản phẩm
+          </div>
+          <div className="text-3xl font-bold text-slate-900">
+            {overview.total}
+          </div>
         </div>
         <div className="rounded-xl border border-emerald-200 p-4 bg-emerald-50 shadow-sm">
-          <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-1">Đang bán</div>
-          <div className="text-3xl font-bold text-emerald-900">{overview.active}</div>
+          <div className="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-1">
+            Đang bán
+          </div>
+          <div className="text-3xl font-bold text-emerald-900">
+            {overview.active}
+          </div>
         </div>
         <div className="rounded-xl border border-slate-300 p-4 bg-slate-100 shadow-sm">
-          <div className="text-xs font-medium text-slate-700 uppercase tracking-wide mb-1">Ngừng bán</div>
-          <div className="text-3xl font-bold text-slate-900">{overview.inactive}</div>
+          <div className="text-xs font-medium text-slate-700 uppercase tracking-wide mb-1">
+            Ngừng bán
+          </div>
+          <div className="text-3xl font-bold text-slate-900">
+            {overview.inactive}
+          </div>
         </div>
         <div className="rounded-xl border border-amber-200 p-4 bg-amber-50 shadow-sm">
-          <div className="text-xs font-medium text-amber-700 uppercase tracking-wide mb-1">Tổng tồn kho</div>
-          <div className="text-3xl font-bold text-amber-900">{overview.stockTotal.toLocaleString("vi-VN")}</div>
+          <div className="text-xs font-medium text-amber-700 uppercase tracking-wide mb-1">
+            Tổng tồn kho
+          </div>
+          <div className="text-3xl font-bold text-amber-900">
+            {overview.stockTotal.toLocaleString("vi-VN")}
+          </div>
         </div>
         <div className="rounded-xl border border-indigo-200 p-4 bg-indigo-50 shadow-sm">
-          <div className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-1">Giá trị tồn</div>
-          <div className="text-xl font-bold text-indigo-900">{currency(overview.inventoryValue)}</div>
+          <div className="text-xs font-medium text-indigo-700 uppercase tracking-wide mb-1">
+            Giá trị tồn
+          </div>
+          <div className="text-xl font-bold text-indigo-900">
+            {currency(overview.inventoryValue)}
+          </div>
         </div>
       </div>
 
       {/* Top products - Improved spacing */}
       <div className="rounded-xl border border-slate-200 bg-white p-5 mb-6 shadow-sm">
-        <div className="text-sm font-semibold text-slate-700 mb-3">Top sản phẩm (giá trị tồn kho)</div>
+        <div className="text-sm font-semibold text-slate-700 mb-3">
+          Top sản phẩm (giá trị tồn kho)
+        </div>
         {topProducts.length === 0 ? (
           <div className="text-sm text-slate-500">Không có dữ liệu</div>
         ) : (
@@ -509,7 +619,9 @@ export default function AdminManagerProduct() {
                   <th className="py-2 px-3 font-medium">Tên</th>
                   <th className="py-2 px-3 font-medium text-right">Tồn kho</th>
                   <th className="py-2 px-3 font-medium text-right">Giá</th>
-                  <th className="py-2 px-3 font-medium text-right">Giá trị tồn</th>
+                  <th className="py-2 px-3 font-medium text-right">
+                    Giá trị tồn
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -518,11 +630,15 @@ export default function AdminManagerProduct() {
                   return (
                     <tr key={p.id} className="border-t border-slate-100">
                       <td className="py-2.5 px-3 text-slate-600">{idx + 1}</td>
-                      <td className="py-2.5 px-3 font-medium text-slate-800">{p.name}</td>
+                      <td className="py-2.5 px-3 font-medium text-slate-800">
+                        {p.name}
+                      </td>
                       <td className="py-2.5 px-3 text-right text-slate-700">
                         {Number(p.stock_quantity || 0).toLocaleString("vi-VN")}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-slate-700">{currency(priceEff)}</td>
+                      <td className="py-2.5 px-3 text-right text-slate-700">
+                        {currency(priceEff)}
+                      </td>
                       <td className="py-2.5 px-3 text-right font-semibold text-slate-900">
                         {currency(priceEff * Number(p.stock_quantity || 0))}
                       </td>
@@ -550,11 +666,17 @@ export default function AdminManagerProduct() {
           <select
             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={categoryFilter}
-            onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="">Tất cả danh mục</option>
             {categories.map((c) => (
-              <option key={c.id ?? c.value ?? c._id} value={c.id ?? c.value ?? c._id}>
+              <option
+                key={c.id ?? c.value ?? c._id}
+                value={c.id ?? c.value ?? c._id}
+              >
                 {c.name ?? c.title ?? c.label ?? c.category_name}
               </option>
             ))}
@@ -564,11 +686,17 @@ export default function AdminManagerProduct() {
           <select
             className="w-full border border-slate-300 rounded-lg px-4 py-2.5 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={brandFilter}
-            onChange={(e) => { setBrandFilter(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setBrandFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value="">Tất cả thương hiệu</option>
             {brands.map((b) => (
-              <option key={b.id ?? b.value ?? b._id} value={b.id ?? b.value ?? b._id}>
+              <option
+                key={b.id ?? b.value ?? b._id}
+                value={b.id ?? b.value ?? b._id}
+              >
                 {b.name ?? b.title ?? b.label ?? b.brand_name}
               </option>
             ))}
@@ -577,7 +705,13 @@ export default function AdminManagerProduct() {
         <div className="md:col-span-4 flex gap-2">
           <button
             className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-sm font-medium transition-colors"
-            onClick={() => { setQuery(""); setCategoryFilter(""); setBrandFilter(""); /* status giữ trong state, nhưng không dùng filter UI */ }}
+            onClick={() => {
+              setQuery("");
+              setCategoryFilter("");
+              setBrandFilter(
+                ""
+              ); /* status giữ trong state, nhưng không dùng filter UI */
+            }}
           >
             Xóa lọc
           </button>
@@ -596,39 +730,72 @@ export default function AdminManagerProduct() {
           <table className="min-w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr className="text-left text-slate-700">
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">ID</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">Tên</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">Giá</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">KM</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">Tồn kho</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">Danh mục</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">Thương hiệu</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">Trạng thái</th>
-                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide text-right">Thao tác</th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  ID
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  Tên
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  Giá
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  KM
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  Tồn kho
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  Danh mục
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  Thương hiệu
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide">
+                  Trạng thái
+                </th>
+                <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wide text-right">
+                  Thao tác
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-500">
+                  <td
+                    colSpan={9}
+                    className="px-4 py-8 text-center text-sm text-slate-500"
+                  >
                     Đang tải...
                   </td>
                 </tr>
               ) : pageData.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-sm text-slate-500">
+                  <td
+                    colSpan={9}
+                    className="px-4 py-8 text-center text-sm text-slate-500"
+                  >
                     Không có dữ liệu.
                   </td>
                 </tr>
               ) : (
                 pageData.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-600">{p.id}</td>
+                  <tr
+                    key={p.id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-mono text-xs text-slate-600">
+                      {p.id}
+                    </td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-sm text-slate-900">{p.name}</div>
+                      <div className="font-medium text-sm text-slate-900">
+                        {p.name}
+                      </div>
                       <div className="text-xs text-slate-500">{p.slug}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-800">{currency(p.price)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-800">
+                      {currency(p.price)}
+                    </td>
                     <td className="px-4 py-3 text-sm text-emerald-700">
                       {p.discount_price ? currency(p.discount_price) : "-"}
                     </td>
@@ -644,11 +811,17 @@ export default function AdminManagerProduct() {
                             if (v !== p.stock_quantity) updateStock(p.id, v);
                           }}
                         />
-                        <span className="text-xs text-slate-500">({p.stock_quantity ?? 0})</span>
+                        <span className="text-xs text-slate-500">
+                          ({p.stock_quantity ?? 0})
+                        </span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{p.category?.name || p.category_id}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{p.brand?.name || p.brand_id}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {p.category?.name || p.category_id}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {p.brand?.name || p.brand_id}
+                    </td>
                     <td className="px-4 py-3">
                       <span
                         className={
@@ -695,7 +868,8 @@ export default function AdminManagerProduct() {
       <div className="flex items-center justify-between mt-5">
         <div className="text-sm text-slate-600">
           Tổng: <span className="font-semibold">{filtered.length}</span> • Trang{" "}
-          <span className="font-semibold">{page}</span>/<span className="font-semibold">{totalPages}</span>
+          <span className="font-semibold">{page}</span>/
+          <span className="font-semibold">{totalPages}</span>
         </div>
         <div className="flex items-center gap-3">
           <select
@@ -727,7 +901,10 @@ export default function AdminManagerProduct() {
       {/* Modal: Create/Update - Improved form layout */}
       {modalOpen && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setModalOpen(false)}
+          />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
               <div className="px-6 py-5 border-b bg-gradient-to-r from-slate-50 to-slate-100 flex items-center justify-between sticky top-0 z-10 rounded-t-2xl">
@@ -736,7 +913,9 @@ export default function AdminManagerProduct() {
                     {editing ? "Sửa sản phẩm" : "Thêm sản phẩm"}
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {editing ? "Cập nhật thông tin cơ bản." : "Điền thông tin và tải ảnh sản phẩm."}
+                    {editing
+                      ? "Cập nhật thông tin cơ bản."
+                      : "Điền thông tin và tải ảnh sản phẩm."}
                   </p>
                 </div>
                 <button
@@ -756,12 +935,20 @@ export default function AdminManagerProduct() {
                     </label>
                     <input
                       className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                        formErrors.name ? "border-red-500 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                        formErrors.name
+                          ? "border-red-500 focus:ring-red-500"
+                          : "border-slate-300 focus:ring-blue-500"
                       }`}
                       value={form.name}
-                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, name: e.target.value }))
+                      }
                     />
-                    {formErrors.name && <p className="text-xs text-red-600 mt-1.5">{formErrors.name}</p>}
+                    {formErrors.name && (
+                      <p className="text-xs text-red-600 mt-1.5">
+                        {formErrors.name}
+                      </p>
+                    )}
                   </div>
 
                   {/* Price */}
@@ -773,45 +960,74 @@ export default function AdminManagerProduct() {
                       type="number"
                       min={0}
                       className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                        formErrors.price ? "border-red-500 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                        formErrors.price
+                          ? "border-red-500 focus:ring-red-500"
+                          : "border-slate-300 focus:ring-blue-500"
                       }`}
                       value={form.price}
-                      onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value || 0) }))}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          price: Number(e.target.value || 0),
+                        }))
+                      }
                     />
-                    {formErrors.price && <p className="text-xs text-red-600 mt-1.5">{formErrors.price}</p>}
+                    {formErrors.price && (
+                      <p className="text-xs text-red-600 mt-1.5">
+                        {formErrors.price}
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Giá KM (VND)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Giá KM (VND)
+                    </label>
                     <input
                       type="number"
                       min={0}
                       className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={form.discount_price}
-                      onChange={(e) => setForm((f) => ({ ...f, discount_price: Number(e.target.value || 0) }))}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          discount_price: Number(e.target.value || 0),
+                        }))
+                      }
                     />
                   </div>
 
                   {/* Stock */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Tồn kho ban đầu</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Tồn kho ban đầu
+                    </label>
                     <input
                       type="number"
                       min={0}
                       className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={form.stock_quantity}
-                      onChange={(e) => setForm((f) => ({ ...f, stock_quantity: Number(e.target.value || 0) }))}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          stock_quantity: Number(e.target.value || 0),
+                        }))
+                      }
                     />
                   </div>
 
                   {/* Description */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Mô tả</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Mô tả
+                    </label>
                     <textarea
                       className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       rows={3}
                       value={form.description}
-                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, description: e.target.value }))
+                      }
                     />
                   </div>
 
@@ -822,19 +1038,30 @@ export default function AdminManagerProduct() {
                     </label>
                     <select
                       className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                        formErrors.category_id ? "border-red-500 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                        formErrors.category_id
+                          ? "border-red-500 focus:ring-red-500"
+                          : "border-slate-300 focus:ring-blue-500"
                       }`}
                       value={String(form.category_id || "")}
-                      onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, category_id: e.target.value }))
+                      }
                     >
                       <option value="">-- Chọn danh mục --</option>
                       {categories.map((c) => (
-                        <option key={c.id ?? c.value ?? c._id} value={String(c.id ?? c.value ?? c._id)}>
+                        <option
+                          key={c.id ?? c.value ?? c._id}
+                          value={String(c.id ?? c.value ?? c._id)}
+                        >
                           {c.name ?? c.title ?? c.label ?? c.category_name}
                         </option>
                       ))}
                     </select>
-                    {formErrors.category_id && <p className="text-xs text-red-600 mt-1.5">{formErrors.category_id}</p>}
+                    {formErrors.category_id && (
+                      <p className="text-xs text-red-600 mt-1.5">
+                        {formErrors.category_id}
+                      </p>
+                    )}
                   </div>
 
                   {/* Brand */}
@@ -844,39 +1071,61 @@ export default function AdminManagerProduct() {
                     </label>
                     <select
                       className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                        formErrors.brand_id ? "border-red-500 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                        formErrors.brand_id
+                          ? "border-red-500 focus:ring-red-500"
+                          : "border-slate-300 focus:ring-blue-500"
                       }`}
                       value={String(form.brand_id || "")}
-                      onChange={(e) => setForm((f) => ({ ...f, brand_id: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, brand_id: e.target.value }))
+                      }
                     >
                       <option value="">-- Chọn thương hiệu --</option>
                       {brands.map((b) => (
-                        <option key={b.id ?? b.value ?? b._id} value={String(b.id ?? b.value ?? b._id)}>
+                        <option
+                          key={b.id ?? b.value ?? b._id}
+                          value={String(b.id ?? b.value ?? b._id)}
+                        >
                           {b.name ?? b.title ?? b.label ?? b.brand_name}
                         </option>
                       ))}
                     </select>
-                    {formErrors.brand_id && <p className="text-xs text-red-600 mt-1.5">{formErrors.brand_id}</p>}
+                    {formErrors.brand_id && (
+                      <p className="text-xs text-red-600 mt-1.5">
+                        {formErrors.brand_id}
+                      </p>
+                    )}
                   </div>
 
                   {/* Default color */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Màu mặc định</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Màu mặc định
+                    </label>
                     <select
                       className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
-                        formErrors.color_id ? "border-red-500 focus:ring-red-500" : "border-slate-300 focus:ring-blue-500"
+                        formErrors.color_id
+                          ? "border-red-500 focus:ring-red-500"
+                          : "border-slate-300 focus:ring-blue-500"
                       }`}
                       value={String(form.color_id || "")}
-                      onChange={(e) => setForm((f) => ({ ...f, color_id: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, color_id: e.target.value }))
+                      }
                     >
                       <option value="">-- Chọn màu chính --</option>
                       {colors.map((c) => (
                         <option key={c.id} value={String(c.id)}>
-                          {c.name}{c.hex ? ` (${c.hex})` : ""}
+                          {c.name}
+                          {c.hex ? ` (${c.hex})` : ""}
                         </option>
                       ))}
                     </select>
-                    {formErrors.color_id && <p className="text-xs text-red-600 mt-1.5">{formErrors.color_id}</p>}
+                    {formErrors.color_id && (
+                      <p className="text-xs text-red-600 mt-1.5">
+                        {formErrors.color_id}
+                      </p>
+                    )}
                   </div>
 
                   {/* Color ids */}
@@ -899,7 +1148,9 @@ export default function AdminManagerProduct() {
                         }))
                       }
                     />
-                    <p className="text-xs text-slate-500 mt-1.5">Nếu không có màu, có thể để trống.</p>
+                    <p className="text-xs text-slate-500 mt-1.5">
+                      Nếu không có màu, có thể để trống.
+                    </p>
                   </div>
 
                   {/* Images (create only) */}
@@ -920,22 +1171,37 @@ export default function AdminManagerProduct() {
                           }`}
                           onChange={(e) => onImagesChange(e.target.files)}
                         />
-                        {formErrors.images && <p className="text-xs text-red-600 mt-1.5">{formErrors.images}</p>}
+                        {formErrors.images && (
+                          <p className="text-xs text-red-600 mt-1.5">
+                            {formErrors.images}
+                          </p>
+                        )}
                         {form.images?.length > 0 && (
                           <div className="mt-4 grid grid-cols-3 gap-3">
                             {form.images.map((file, idx) => (
                               <div
                                 key={idx}
                                 className={`relative border rounded-lg overflow-hidden ${
-                                  form.primary_image_index === idx ? "ring-2 ring-blue-500" : "border-slate-200"
+                                  form.primary_image_index === idx
+                                    ? "ring-2 ring-blue-500"
+                                    : "border-slate-200"
                                 }`}
                               >
-                                <img src={objectUrls[idx]} alt={`preview-${idx}`} className="w-full h-28 object-cover" />
+                                <img
+                                  src={objectUrls[idx]}
+                                  alt={`preview-${idx}`}
+                                  className="w-full h-28 object-cover"
+                                />
                                 <div className="absolute top-2 right-2 flex gap-1">
                                   <button
                                     type="button"
                                     className="text-xs px-2 py-1 rounded bg-white/90 border border-slate-200 hover:bg-white font-medium shadow-sm"
-                                    onClick={() => setForm((f) => ({ ...f, primary_image_index: idx }))}
+                                    onClick={() =>
+                                      setForm((f) => ({
+                                        ...f,
+                                        primary_image_index: idx,
+                                      }))
+                                    }
                                   >
                                     Ảnh chính
                                   </button>
@@ -951,10 +1217,14 @@ export default function AdminManagerProduct() {
                             ))}
                           </div>
                         )}
-                        <p className="text-xs text-slate-500 mt-2">Yêu cầu: có ít nhất 1 hình, jpg/png/webp.</p>
+                        <p className="text-xs text-slate-500 mt-2">
+                          Yêu cầu: có ít nhất 1 hình, jpg/png/webp.
+                        </p>
                       </div>
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Alt text (image_alts)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                          Alt text (image_alts)
+                        </label>
                         <div className="space-y-2">
                           {form.images.map((_, idx) => (
                             <input
@@ -972,11 +1242,18 @@ export default function AdminManagerProduct() {
 
                   {/* Status */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Trạng thái</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Trạng thái
+                    </label>
                     <select
                       className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       value={form.is_active ? "active" : "inactive"}
-                      onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.value === "active" }))}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          is_active: e.target.value === "active",
+                        }))
+                      }
                     >
                       <option value="active">Đang bán</option>
                       <option value="inactive">Ngừng bán</option>
