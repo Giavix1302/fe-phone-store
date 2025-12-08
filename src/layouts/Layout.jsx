@@ -1,14 +1,13 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { logout as logoutApi, parseStoredUser, fetchCurrentUserProfile } from "../services/authApi";
-import { AUTH_CHANGED_EVENT, emitAuthChanged } from "../utils/authEvents";
+import { parseStoredUser, fetchCurrentUserProfile } from "../services/authApi";
+import { AUTH_CHANGED_EVENT } from "../utils/authEvents";
 import { CART_CHANGED_EVENT } from "../utils/cartEvents";
 import { getCartCount } from "../services/cartApi";
 
 const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [user, setUser] = useState(() => parseStoredUser());
   const [cartCount, setCartCount] = useState(0);
@@ -19,14 +18,22 @@ const Layout = () => {
 
   const loadCartCount = useCallback(async () => {
     const token = localStorage.getItem("token");
-    if (token) {
+    
+    if (!token) {
       try {
-        const count = await getCartCount();
-        setCartCount(count);
-      } catch (err) {
+        const { getGuestCartCount } = await import("../utils/guestCart");
+        setCartCount(getGuestCartCount());
+      } catch {
         setCartCount(0);
       }
-    } else {
+      return;
+    }
+
+    // Authenticated user - call API
+    try {
+      const count = await getCartCount();
+      setCartCount(count);
+    } catch {
       setCartCount(0);
     }
   }, []);
@@ -96,15 +103,6 @@ const Layout = () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, handleAuthChanged);
     };
   }, [syncUserFromStorage, fetchAndUpdateAvatar]);
-
-
-  const handleLogout = async () => {
-    await logoutApi();
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    emitAuthChanged();
-    navigate("/");
-  };
 
   const isActive = (path) => {
     return (
@@ -229,7 +227,38 @@ const Layout = () => {
                   </Link>
                 </div>
               ) : (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
+                  {/* Giỏ hàng - Guest */}
+                  <Link
+                    to="/cart"
+                    className={`relative p-2 transition rounded-full hover:bg-gray-200 ${
+                      isActive("/cart")
+                        ? "text-primary-100 bg-gray-200"
+                        : "text-gray-600"
+                    }`}
+                    title="Giỏ hàng"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                      />
+                    </svg>
+                    {cartCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center shadow-lg">
+                        {cartCount > 99 ? "99+" : cartCount}
+                      </span>
+                    )}
+                  </Link>
+
                   <Link
                     to="/login"
                     className="text-gray-600 hover:text-primary-100 font-medium"
@@ -274,34 +303,35 @@ const Layout = () => {
                 >
                   Sản phẩm
                 </Link>
+                {/* Giỏ hàng - hiển thị cho cả user và guest */}
+                <Link
+                  to="/cart"
+                  className="flex items-center px-3 py-2 text-gray-600 hover:text-primary-100 font-medium relative"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                  <span>Giỏ hàng</span>
+                  {cartCount > 0 && (
+                    <span className="ml-auto bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </Link>
                 {user && (
                   <>
-                    <Link
-                      to="/cart"
-                      className="flex items-center px-3 py-2 text-gray-600 hover:text-primary-100 font-medium relative"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                        />
-                      </svg>
-                      <span>Giỏ hàng</span>
-                      {cartCount > 0 && (
-                        <span className="ml-auto bg-red-600 text-white text-xs font-bold rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">
-                          {cartCount > 99 ? "99+" : cartCount}
-                        </span>
-                      )}
-                    </Link>
                     <Link
                       to="/profile"
                       className="flex items-center px-3 py-2 text-gray-600 hover:text-primary-100 font-medium"

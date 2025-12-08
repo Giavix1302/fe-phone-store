@@ -30,8 +30,50 @@ export const fetchProductReviews = async (productId, params = {}) => {
       throw new Error(message);
     }
   
-    return result?.data || null;
+  return result?.data || null;
   };
-  
+
+
+/**
+ * Đánh giá sản phẩm trong đơn hàng
+ * POST /api/orders/{order_number}/review
+ * @param {string} orderNumber - Mã đơn hàng
+ * @param {{ reviews: Array<{ product_id: number; rating: number; comment: string }> }} payload
+ */
+export const submitOrderReview = async (orderNumber, payload) => {
+  if (!orderNumber) {
+    throw new Error("Thiếu thông tin đơn hàng.");
+  }
+
+  if (!payload || !payload.reviews || payload.reviews.length === 0) {
+    throw new Error("Vui lòng chọn ít nhất một sản phẩm để đánh giá.");
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("Vui lòng đăng nhập để đánh giá sản phẩm.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/orders/${orderNumber}/review`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể gửi đánh giá. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data || null;
+};
+
   
   

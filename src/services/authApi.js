@@ -264,3 +264,31 @@ export const uploadAvatar = async (file) => {
   return result?.data;
 };
 
+/**
+ * Sync guest cart after login
+ * This should be called after successful login
+ */
+export const syncGuestCartAfterLogin = async () => {
+  try {
+    const { getGuestCart, clearGuestCart } = await import("../utils/guestCart");
+    const { syncCart } = await import("./cartApi");
+    
+    const guestCart = getGuestCart();
+    
+    if (guestCart.length > 0) {
+      const result = await syncCart({
+        guest_cart_items: guestCart,
+      });
+
+      clearGuestCart();
+      
+      return result;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error syncing guest cart:", error);
+    return null;
+  }
+};
+

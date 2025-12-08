@@ -2,16 +2,20 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api"
 
 /**
  * Thêm sản phẩm vào giỏ hàng
- * POST /api/cart/items
+ * POST /api/cart/items (nếu đã đăng nhập)
+ * Hoặc lưu vào localStorage (nếu chưa đăng nhập - guest cart)
  * @param {{ product_id: number; color_id: number; quantity: number }} payload
  */
 export const addToCart = async (payload) => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    throw new Error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.");
+    const { addToGuestCart } = await import("../utils/guestCart");
+    const cart = addToGuestCart(payload);
+    return { items: cart, isGuest: true };
   }
 
+  // Authenticated user - call API
   const response = await fetch(`${API_BASE_URL}/cart/items`, {
     method: "POST",
     headers: {
@@ -39,13 +43,27 @@ export const addToCart = async (payload) => {
 
 /**
  * Lấy giỏ hàng của người dùng
- * GET /api/cart
+ * GET /api/cart (nếu đã đăng nhập)
+ * Hoặc trả về guest cart từ localStorage (nếu chưa đăng nhập)
  */
 export const getCart = async () => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    throw new Error("Vui lòng đăng nhập để xem giỏ hàng.");
+    const { getGuestCart } = await import("../utils/guestCart");
+    const guestCart = getGuestCart();
+    
+    return {
+      items: guestCart.map((item, index) => ({
+        id: `guest-${index}`,
+        product_id: item.product_id,
+        color_id: item.color_id,
+        quantity: item.quantity,
+      })),
+      total_items: guestCart.length,
+      total_quantity: guestCart.reduce((sum, item) => sum + item.quantity, 0),
+      isGuest: true,
+    };
   }
 
   const response = await fetch(`${API_BASE_URL}/cart`, {
@@ -202,15 +220,18 @@ export const clearCart = async () => {
 
 /**
  * Lấy số lượng sản phẩm trong giỏ hàng
- * GET /api/cart/count
+ * GET /api/cart/count (nếu đã đăng nhập)
+ * Hoặc đếm từ guest cart (nếu chưa đăng nhập)
  */
 export const getCartCount = async () => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-    return 0;
+    const { getGuestCartCount } = await import("../utils/guestCart");
+    return getGuestCartCount();
   }
 
+  // Authenticated user - call API
   const response = await fetch(`${API_BASE_URL}/cart/count`, {
     method: "GET",
     headers: {
@@ -226,6 +247,39 @@ export const getCartCount = async () => {
   }
 
   return result?.data?.total_items || 0;
+};
+
+/**
+ * Đồng bộ giỏ hàng từ localStorage khi guest user đăng nhập
+ * POST /api/cart/sync
+ * @param {{ guest_cart_items: Array<{ product_id: number; color_id: number; quantity: number }> }} payload
+ */
+export const syncCart = async (payload) => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("Vui lòng đăng nhập để đồng bộ giỏ hàng.");
+  }
+
+  const response = await fetch(`${API_BASE_URL}/cart/sync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const message =
+      result?.message || "Không thể đồng bộ giỏ hàng. Vui lòng thử lại sau.";
+    throw new Error(message);
+  }
+
+  return result?.data || null;
 };
 
 /**

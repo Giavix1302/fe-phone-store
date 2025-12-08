@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { login as loginApi } from "../services/authApi";
+import { login as loginApi, syncGuestCartAfterLogin } from "../services/authApi";
 import { emitAuthChanged } from "../utils/authEvents";
+import { emitCartChanged } from "../utils/cartEvents";
 
 const initialFormState = {
   email: "",
@@ -73,11 +74,20 @@ const Login = () => {
         email: formData.email.trim(),
         password: formData.password,
       });
-
+      console.log("Login response:", loginResponse);
       localStorage.setItem("token", loginResponse.access_token);
       localStorage.setItem("user", JSON.stringify(loginResponse.user));
 
       emitAuthChanged();
+      
+      // Sync guest cart after login
+      try {
+        await syncGuestCartAfterLogin();
+        emitCartChanged(); // Notify cart changed after sync
+      } catch (error) {
+        console.warn("Could not sync guest cart:", error);
+      }
+
       setSuccessMessage("Đăng nhập thành công! Đang chuyển hướng...");
 
       if (!formData.rememberMe) {
@@ -86,9 +96,15 @@ const Login = () => {
         localStorage.removeItem("login_session");
       }
 
-      setTimeout(() => {
+      if(loginResponse.user.role === "ADMIN") {
+        navigate("/admin/dashboard", { replace: true });
+      } else {
         navigate(from, { replace: true });
-      }, 800);
+      }
+
+      // setTimeout(() => {
+      //   navigate(from, { replace: true });
+      // }, 800);
     } catch (error) {
       setApiError(error.message || "Đăng nhập thất bại, vui lòng thử lại.");
     } finally {

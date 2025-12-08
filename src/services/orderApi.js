@@ -1,9 +1,11 @@
+// =======================
+// CLIENT ORDER API
+// =======================
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 /**
  * Tạo đơn hàng từ giỏ hàng
- * POST /api/orders
- * @param {{ shipping_address: string; payment_method?: string; note?: string; cart_item_ids?: number[] }} payload
  */
 export const createOrder = async (payload) => {
   const token = localStorage.getItem("token");
@@ -30,18 +32,14 @@ export const createOrder = async (payload) => {
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message =
-      result?.message || "Không thể tạo đơn hàng. Vui lòng thử lại sau.";
-    throw new Error(message);
+    throw new Error(result?.message || "Không thể tạo đơn hàng. Vui lòng thử lại sau.");
   }
 
   return result?.data || null;
 };
 
 /**
- * Lấy danh sách đơn hàng của người dùng
- * GET /api/orders
- * @param {{ page?: number; limit?: number; status?: string; from_date?: string; to_date?: string; sort_by?: string; sort_order?: string }} params
+ * Lấy danh sách đơn hàng người dùng
  */
 export const getUserOrders = async (params = {}) => {
   const token = localStorage.getItem("token");
@@ -71,21 +69,15 @@ export const getUserOrders = async (params = {}) => {
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message =
-      result?.message || "Không thể lấy danh sách đơn hàng. Vui lòng thử lại sau.";
-    throw new Error(message);
+    throw new Error(result?.message || "Không thể lấy danh sách đơn hàng.");
   }
 
   return result?.data || null;
 };
-
-// Alias for backward compatibility
 export const fetchUserOrders = getUserOrders;
 
 /**
  * Lấy chi tiết đơn hàng
- * GET /api/orders/{order_number}
- * @param {string} orderNumber
  */
 export const getOrderDetail = async (orderNumber) => {
   const token = localStorage.getItem("token");
@@ -105,22 +97,15 @@ export const getOrderDetail = async (orderNumber) => {
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message =
-      result?.message || "Không thể lấy chi tiết đơn hàng. Vui lòng thử lại sau.";
-    throw new Error(message);
+    throw new Error(result?.message || "Không thể lấy chi tiết đơn hàng.");
   }
 
   return result?.data || null;
 };
-
-// Alias for backward compatibility
 export const fetchOrderDetail = getOrderDetail;
 
 /**
  * Hủy đơn hàng
- * POST /api/orders/{order_number}/cancel
- * @param {string} orderNumber
- * @param {{ reason?: string }} payload
  */
 export const cancelOrder = async (orderNumber, payload = {}) => {
   const token = localStorage.getItem("token");
@@ -141,11 +126,113 @@ export const cancelOrder = async (orderNumber, payload = {}) => {
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const message =
-      result?.message || "Không thể hủy đơn hàng. Vui lòng thử lại sau.";
-    throw new Error(message);
+    throw new Error(result?.message || "Không thể hủy đơn hàng.");
   }
 
   return result?.data || null;
 };
 
+// =======================
+// ADMIN ORDER API
+// =======================
+
+const API_BASE = "https://api.phone.sitedemo.io.vn";
+const getAdminToken = () => localStorage.getItem("token") || "";
+
+/**
+ * Admin – lấy tất cả đơn hàng
+ */
+export const getAdminOrders = async (params = {}) => {
+  const {
+    page = 1,
+    limit = 20,
+    status,
+    user_id,
+    from_date,
+    to_date,
+    search,
+    sort_by = "created_at",
+    sort_order = "desc",
+  } = params;
+
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  qs.set("limit", String(limit));
+  if (status) qs.set("status", status);
+  if (user_id != null) qs.set("user_id", String(user_id));
+  if (from_date) qs.set("from_date", from_date);
+  if (to_date) qs.set("to_date", to_date);
+  if (search) qs.set("search", search);
+  if (sort_by) qs.set("sort_by", sort_by);
+  if (sort_order) qs.set("sort_order", sort_order);
+
+  const res = await fetch(`${API_BASE}/api/admin/orders?${qs.toString()}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${getAdminToken()}`,
+      Accept: "application/json",
+    },
+  });
+
+  const json = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    throw new Error(json?.message || `Không thể lấy danh sách đơn hàng (${res.status})`);
+  }
+
+  const data = json?.data || {};
+  const orders = Array.isArray(data.orders) ? data.orders : [];
+
+  const pagination =
+    data.pagination || {
+      current_page: page,
+      total_pages: 1,
+      total_items: orders.length,
+      items_per_page: limit,
+      has_next: false,
+      has_prev: page > 1,
+    };
+
+  const summary = data.summary || null;
+
+  return { data: { orders, pagination, summary } };
+};
+
+/**
+ * Admin – cập nhật trạng thái đơn hàng
+ */
+export const updateOrderStatus = async (orderNumber, payload) => {
+  const safeOrder = encodeURIComponent(orderNumber);
+
+  if (payload?.estimated_delivery) {
+    const d = new Date(payload.estimated_delivery);
+    if (!isNaN(d.getTime())) {
+      payload.estimated_delivery = d.toISOString();
+    }
+  }
+
+  const res = await fetch(`${API_BASE}/api/admin/orders/${safeOrder}/status`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${getAdminToken()}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    const text = await res.text().catch(() => "");
+    if (!res.ok) throw new Error(text || `Không thể cập nhật trạng thái đơn hàng (${res.status})`);
+    return null;
+  }
+
+  if (!res.ok) {
+    throw new Error(json?.message || `Không thể cập nhật trạng thái đơn hàng (${res.status})`);
+  }
+
+  return json?.data ?? null;
+};
