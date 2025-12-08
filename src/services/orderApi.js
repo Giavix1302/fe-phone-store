@@ -2,7 +2,8 @@
 // CLIENT ORDER API
 // =======================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 /**
  * Tạo đơn hàng từ giỏ hàng
@@ -32,7 +33,9 @@ export const createOrder = async (payload) => {
   const result = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(result?.message || "Không thể tạo đơn hàng. Vui lòng thử lại sau.");
+    throw new Error(
+      result?.message || "Không thể tạo đơn hàng. Vui lòng thử lại sau."
+    );
   }
 
   return result?.data || null;
@@ -136,7 +139,7 @@ export const cancelOrder = async (orderNumber, payload = {}) => {
 // ADMIN ORDER API
 // =======================
 
-const API_BASE = "https://api.phone.sitedemo.io.vn";
+const API_BASE = "http://localhost:8080";
 const getAdminToken = () => localStorage.getItem("token") || "";
 
 /**
@@ -177,21 +180,22 @@ export const getAdminOrders = async (params = {}) => {
   const json = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new Error(json?.message || `Không thể lấy danh sách đơn hàng (${res.status})`);
+    throw new Error(
+      json?.message || `Không thể lấy danh sách đơn hàng (${res.status})`
+    );
   }
 
   const data = json?.data || {};
   const orders = Array.isArray(data.orders) ? data.orders : [];
 
-  const pagination =
-    data.pagination || {
-      current_page: page,
-      total_pages: 1,
-      total_items: orders.length,
-      items_per_page: limit,
-      has_next: false,
-      has_prev: page > 1,
-    };
+  const pagination = data.pagination || {
+    current_page: page,
+    total_pages: 1,
+    total_items: orders.length,
+    items_per_page: limit,
+    has_next: false,
+    has_prev: page > 1,
+  };
 
   const summary = data.summary || null;
 
@@ -226,12 +230,17 @@ export const updateOrderStatus = async (orderNumber, payload) => {
     json = await res.json();
   } catch {
     const text = await res.text().catch(() => "");
-    if (!res.ok) throw new Error(text || `Không thể cập nhật trạng thái đơn hàng (${res.status})`);
+    if (!res.ok)
+      throw new Error(
+        text || `Không thể cập nhật trạng thái đơn hàng (${res.status})`
+      );
     return null;
   }
 
   if (!res.ok) {
-    throw new Error(json?.message || `Không thể cập nhật trạng thái đơn hàng (${res.status})`);
+    throw new Error(
+      json?.message || `Không thể cập nhật trạng thái đơn hàng (${res.status})`
+    );
   }
 
   return json?.data ?? null;
