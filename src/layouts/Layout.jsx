@@ -4,6 +4,7 @@ import { parseStoredUser, fetchCurrentUserProfile } from "../services/authApi";
 import { AUTH_CHANGED_EVENT } from "../utils/authEvents";
 import { CART_CHANGED_EVENT } from "../utils/cartEvents";
 import { getCartCount } from "../services/cartApi";
+import Logo from "../assets/Logo.png";
 
 const Layout = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -117,9 +118,14 @@ const Layout = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <img 
+                src={Logo} 
+                alt="PhoneStore Logo" 
+                className="h-14 w-auto"
+              />
               <h1 className="text-2xl font-bold text-primary-100">
-                📱 PhoneStore
+                PhoneStore
               </h1>
             </Link>
 
