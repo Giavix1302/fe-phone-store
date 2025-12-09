@@ -284,11 +284,16 @@ export default function AdminManagerProduct() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        // BE expects snake_case
-        body: JSON.stringify({ stock_quantity: Number(newStock), operation: "set" }),
+        // Đổi sang camelCase, bỏ operation
+        body: JSON.stringify({ stockQuantity: Number(newStock) }),
       });
-      if (!res.ok) throw new Error(`Stock failed: ${res.status}`);
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("updateStock failed:", res.status, t);
+        throw new Error(`Stock failed: ${res.status}`);
+      }
       await fetchProducts();
     } catch (err) {
       console.error("updateStock error", err);
@@ -296,46 +301,13 @@ export default function AdminManagerProduct() {
     }
   };
 
-  const toggleActive = async (p) => {
-    try {
-      const token = getAdminToken();
-      const category_id = Number(p.category_id ?? p.categoryId ?? p.category?.id);
-      const brand_id = Number(p.brand_id ?? p.brandId ?? p.brand?.id);
-      const color_id_raw = p.color_id ?? p.colorId ?? p.color?.id;
-      const color_id = color_id_raw != null ? Number(color_id_raw) : undefined;
-
-      if (!category_id || !brand_id || !color_id) {
-        alert("Sản phẩm thiếu Danh mục/Thương hiệu/Màu mặc định. Vui lòng mở 'Sửa' và chọn đầy đủ.");
-        return;
-      }
-
-      const res = await fetch(`${API_BASE}/api/admin/products/${p.id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: p.name,
-          description: p.description || "",
-          price: Number(p.price || 0),
-          discount_price: Number(p.discount_price || 0),
-          category_id,
-          brand_id,
-          color_id,
-          is_active: !p.is_active,
-        }),
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        console.error("toggleActive failed:", res.status, t);
-        throw new Error(`Update failed`);
-      }
-      await fetchProducts();
-    } catch (err) {
-      console.error("toggleActive error", err);
-      alert("Cập nhật trạng thái thất bại.");
-    }
+  const toggleActive = (p) => {
+    // UI-only: không gọi API, chỉ đổi cờ is_active trên danh sách hiện tại
+    setProducts((list) =>
+      list.map((item) =>
+        item.id === p.id ? { ...item, is_active: !item.is_active } : item
+      )
+    );
   };
 
   const submitForm = async (e) => {
@@ -349,12 +321,12 @@ export default function AdminManagerProduct() {
           name: form.name,
           description: form.description || "",
           price: Number(form.price),
-          discount_price: Number(form.discount_price) || 0,
-          category_id: Number(form.category_id),
-          brand_id: Number(form.brand_id),
-          is_active: !!form.is_active,
+          discountPrice: Number(form.discount_price) || 0,
+          categoryId: Number(form.category_id),
+          brandId: Number(form.brand_id),
+          isActive: !!form.is_active,
         };
-        if (form.color_id) payload.color_id = Number(form.color_id);
+        if (form.color_id) payload.colorId = Number(form.color_id);
 
         const res = await fetch(`${API_BASE}/api/admin/products/${editing.id}`, {
           method: "PUT",
@@ -375,21 +347,21 @@ export default function AdminManagerProduct() {
           name: form.name,
           description: form.description || "",
           price: Number(form.price),
-          discount_price: Number(form.discount_price) || 0,
-          stock_quantity: Number(form.stock_quantity || 0),
-          category_id: Number(form.category_id),
-          brand_id: Number(form.brand_id),
-          ...(form.color_id ? { color_id: Number(form.color_id) } : {}),
+          discountPrice: Number(form.discount_price) || 0,
+          stockQuantity: Number(form.stock_quantity || 0),
+          categoryId: Number(form.category_id),
+          brandId: Number(form.brand_id),
+          ...(form.color_id ? { colorId: Number(form.color_id) } : {}),
           ...(Array.isArray(form.color_ids) && form.color_ids.length > 0
-            ? { color_ids: form.color_ids.map(Number) }
+            ? { colorIds: form.color_ids.map(Number) }
             : {}),
-          is_active: !!form.is_active,
-          primary_image_index: Number(form.primary_image_index || 0),
+          isActive: !!form.is_active,
+          primaryImageIndex: Number(form.primary_image_index || 0),
         };
         fd.append("product", new Blob([JSON.stringify(productPayload)], { type: "application/json" }));
         (form.images || []).forEach((file) => fd.append("images", file));
         if (Array.isArray(form.image_alts) && form.image_alts.length > 0) {
-          fd.append("image_alts", new Blob([JSON.stringify(form.image_alts)], { type: "application/json" }));
+          fd.append("imageAlts", new Blob([JSON.stringify(form.image_alts)], { type: "application/json" }));
         }
 
         const res = await fetch(`${API_BASE}/api/admin/products`, {
@@ -466,9 +438,9 @@ export default function AdminManagerProduct() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Quản lý sản phẩm</h1>
-          <p className="text-sm text-slate-500 mt-1">Tìm kiếm, lọc, tồn kho, bật/tắt, thêm/sửa/xóa.</p>
+          <p className="text-sm text-slate-500 mt-1"></p>
         </div>
-        <div className="text-xs px-3 py-1.5 rounded-lg bg-slate-200 text-slate-700 font-medium">Admin Panel</div>
+       
       </div>
 
       {/* Overview cards - Balanced sizes */}
@@ -851,7 +823,7 @@ export default function AdminManagerProduct() {
                     >
                       <option value="">-- Chọn thương hiệu --</option>
                       {brands.map((b) => (
-                        <option key={b.id ?? b.value ?? b._id} value={String(b.id ?? b.value ?? b._id)}>
+                        <option key={b.id ?? b.value ?? b._id} value={String(b.id ?? b.value ?? c._id)}>
                           {b.name ?? b.title ?? b.label ?? b.brand_name}
                         </option>
                       ))}
