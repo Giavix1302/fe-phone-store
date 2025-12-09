@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { login as loginApi, syncGuestCartAfterLogin } from "../services/authApi";
+import { login as loginApi, syncGuestCartAfterLogin, resendVerification } from "../services/authApi";
 import { emitAuthChanged } from "../utils/authEvents";
 import { emitCartChanged } from "../utils/cartEvents";
 
@@ -106,7 +106,40 @@ const Login = () => {
       //   navigate(from, { replace: true });
       // }, 800);
     } catch (error) {
-      setApiError(error.message || "Đăng nhập thất bại, vui lòng thử lại.");
+      const errorMessage = error.message || "Đăng nhập thất bại, vui lòng thử lại.";
+      
+      // Check if account is not verified
+      if (errorMessage.includes("chưa được kích hoạt") || 
+          errorMessage.includes("chưa được xác thực") ||
+          errorMessage.includes("not activated") ||
+          errorMessage.includes("not verified")) {
+        
+        // Auto resend verification code
+        try {
+          await resendVerification({ email: formData.email.trim() });
+          setApiError("Tài khoản chưa được xác thực. Mã xác thực mới đã được gửi đến email của bạn.");
+          
+          // Redirect to verify email page after 2 seconds
+          setTimeout(() => {
+            navigate("/verify-email", {
+              replace: true,
+              state: { email: formData.email.trim() }
+            });
+          }, 2000);
+        } catch (resendError) {
+          // If resend fails, still redirect to verify page
+          setApiError("Tài khoản chưa được xác thực. Vui lòng xác thực email để đăng nhập.");
+          
+          setTimeout(() => {
+            navigate("/verify-email", {
+              replace: true,
+              state: { email: formData.email.trim() }
+            });
+          }, 2000);
+        }
+      } else {
+        setApiError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

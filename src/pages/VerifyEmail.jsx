@@ -47,9 +47,10 @@ const VerifyEmail = () => {
   }, [resendSeconds]);
 
   const maskedEmail = useMemo(() => {
-    if (!formData.email) return "";
-    const [name, domain] = formData.email.split("@");
-    if (!domain) return formData.email;
+    if (!formData.email || !formData.email.trim()) return "";
+    const email = formData.email.trim();
+    const [name, domain] = email.split("@");
+    if (!domain || !name) return email;
     const maskedName =
       name.length <= 2
         ? `${name[0] || ""}***`
@@ -90,7 +91,8 @@ const VerifyEmail = () => {
       setSuccessMessage("Xác thực thành công! Bạn có thể đăng nhập ngay bây giờ.");
       setTimeout(() => navigate("/login", { replace: true }), 1500);
     } catch (error) {
-      setApiError(error.message || "Mã xác thực không hợp lệ.");
+      const errorMessage = error.message || "Mã xác thực không hợp lệ.";
+      setApiError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -98,19 +100,27 @@ const VerifyEmail = () => {
 
   const handleResend = async () => {
     if (resendSeconds > 0) return;
+    
+    // Validate email
     const emailErrors = validate({ email: formData.email, code: "0".repeat(CODE_LENGTH) });
     if (emailErrors.email) {
       setFormErrors((prev) => ({ ...prev, email: emailErrors.email }));
+      setApiError("");
+      setSuccessMessage("");
       return;
     }
 
+    // Clear previous messages
     setApiError("");
+    setSuccessMessage("");
+    
     try {
       await resendVerification({ email: formData.email.trim() });
       setSuccessMessage("Mã xác thực mới đã được gửi. Vui lòng kiểm tra email.");
       setResendSeconds(RESEND_INTERVAL);
     } catch (error) {
-      setApiError(error.message || "Không thể gửi lại mã. Vui lòng thử lại.");
+      const errorMessage = error.message || "Không thể gửi lại mã. Vui lòng thử lại.";
+      setApiError(errorMessage);
     }
   };
 
@@ -122,8 +132,14 @@ const VerifyEmail = () => {
             Xác thực email của bạn
           </h1>
           <p className="text-gray-500">
-            Nhập mã gồm {CODE_LENGTH} chữ số đã được gửi tới email{" "}
-            <span className="font-semibold text-dark-100">{maskedEmail}</span>
+            {maskedEmail ? (
+              <>
+                Nhập mã gồm {CODE_LENGTH} chữ số đã được gửi tới email{" "}
+                <span className="font-semibold text-dark-100">{maskedEmail}</span>
+              </>
+            ) : (
+              `Nhập mã gồm ${CODE_LENGTH} chữ số đã được gửi tới email của bạn`
+            )}
           </p>
         </div>
 

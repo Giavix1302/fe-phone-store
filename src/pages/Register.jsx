@@ -119,7 +119,28 @@ const Register = () => {
         }
       }, 1200);
     } catch (error) {
-      setApiError(error.message || "Đăng ký thất bại, vui lòng thử lại.");
+      const errorMessage = error.message || "Đăng ký thất bại, vui lòng thử lại.";
+      
+      // Handle specific errors
+      if (errorMessage.includes("Username already exists") || 
+          errorMessage.includes("username already")) {
+        // Username is generated from email, so this shouldn't happen
+        // But if it does, treat it as email error
+        setFormErrors((prev) => ({
+          ...prev,
+          email: "Email này đã được sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập.",
+        }));
+        setApiError("");
+      } else if (errorMessage.includes("Email already exists") || 
+                 errorMessage.includes("email already")) {
+        setFormErrors((prev) => ({
+          ...prev,
+          email: "Email này đã được sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập.",
+        }));
+        setApiError("");
+      } else {
+        setApiError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
