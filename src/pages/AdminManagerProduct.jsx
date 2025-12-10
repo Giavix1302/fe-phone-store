@@ -923,7 +923,7 @@ export default function AdminManagerProduct() {
                             ))}
                           </div>
                         )}
-                        <p className="text-xs text-slate-500 mt-2">Yêu cầu: có ít nhất 1 hình, jpg/png/webp.</p>
+                        <p className="text-xs text-slate-500 mt-2">Yêu cầu:có ít nhất 1 hình, jpg/png/webp.</p>
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-2">Alt text (image_alts)</label>
@@ -970,7 +970,7 @@ export default function AdminManagerProduct() {
                     className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors shadow-sm"
                     disabled={saving}
                   >
-                    {saving ? "Đang lưu..." : editing ? "Cập nhật" : "Thêm mới"}
+                    {saving ? "Đang lưu...." : editing ? "Cập nhật" : "Thêm mới"}
                   </button>
                 </div>
               </form>
@@ -980,4 +980,7 @@ export default function AdminManagerProduct() {
       )}
     </div>
   );
+
+
+
 }
