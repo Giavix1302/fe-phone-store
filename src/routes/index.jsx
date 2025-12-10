@@ -66,6 +66,7 @@ export default function AppRouter() {
           {/* AUTH */}
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
+          <Route path="verify-email" element={<VerifyEmail />} />
 
           {/* CUSTOMER PRIVATE ROUTES */}
           <Route
