@@ -143,7 +143,7 @@ export default function AdminManagerUser() {
           <h2 className="text-2xl font-bold text-slate-800">Quản lý người dùng</h2>
           <p className="text-sm text-slate-500"></p>
         </div>
-        <div className="text-xs px-2 py-1 rounded-lg bg-slate-200 text-slate-700">Admin Panel</div>
+        
       </div>
 
       {/* Thống kê đơn giản từ getAll */}

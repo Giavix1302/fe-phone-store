@@ -19,7 +19,7 @@ export default function AdminManagerProduct() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("all");
+  const [status] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -341,14 +341,15 @@ export default function AdminManagerProduct() {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
-        // BE expects snake_case
-        body: JSON.stringify({
-          stock_quantity: Number(newStock),
-          operation: "set",
-        }),
+        body: JSON.stringify({ stockQuantity: Number(newStock) }),
       });
-      if (!res.ok) throw new Error(`Stock failed: ${res.status}`);
+      if (!res.ok) {
+        const t = await res.text();
+        console.error("updateStock failed:", res.status, t);
+        throw new Error(`Stock failed: ${res.status}`);
+      }
       await fetchProducts();
     } catch (err) {
       console.error("updateStock error", err);
@@ -413,12 +414,12 @@ export default function AdminManagerProduct() {
           name: form.name,
           description: form.description || "",
           price: Number(form.price),
-          discount_price: Number(form.discount_price) || 0,
-          category_id: Number(form.category_id),
-          brand_id: Number(form.brand_id),
-          is_active: !!form.is_active,
+          discountPrice: Number(form.discount_price) || 0,
+          categoryId: Number(form.category_id),
+          brandId: Number(form.brand_id),
+          isActive: !!form.is_active,
         };
-        if (form.color_id) payload.color_id = Number(form.color_id);
+        if (form.color_id) payload.colorId = Number(form.color_id);
 
         const res = await fetch(
           `${API_BASE}/api/admin/products/${editing.id}`,
@@ -442,16 +443,16 @@ export default function AdminManagerProduct() {
           name: form.name,
           description: form.description || "",
           price: Number(form.price),
-          discount_price: Number(form.discount_price) || 0,
-          stock_quantity: Number(form.stock_quantity || 0),
-          category_id: Number(form.category_id),
-          brand_id: Number(form.brand_id),
-          ...(form.color_id ? { color_id: Number(form.color_id) } : {}),
+          discountPrice: Number(form.discount_price) || 0,
+          stockQuantity: Number(form.stock_quantity || 0),
+          categoryId: Number(form.category_id),
+          brandId: Number(form.brand_id),
+          ...(form.color_id ? { colorId: Number(form.color_id) } : {}),
           ...(Array.isArray(form.color_ids) && form.color_ids.length > 0
-            ? { color_ids: form.color_ids.map(Number) }
+            ? { colorIds: form.color_ids.map(Number) }
             : {}),
-          is_active: !!form.is_active,
-          primary_image_index: Number(form.primary_image_index || 0),
+          isActive: !!form.is_active,
+          primaryImageIndex: Number(form.primary_image_index || 0),
         };
         fd.append(
           "product",
@@ -907,7 +908,7 @@ export default function AdminManagerProduct() {
           />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
-              <div className="px-6 py-5 border-b bg-gradient-to-r from-slate-50 to-slate-100 flex items-center justify-between sticky top-0 z-10 rounded-t-2xl">
+              <div className="px-6 py-5 border-b bg-linear-to-r from-slate-50 to-slate-100 flex items-center justify-between sticky top-0 z-10 rounded-t-2xl">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">
                     {editing ? "Sửa sản phẩm" : "Thêm sản phẩm"}
@@ -1275,7 +1276,7 @@ export default function AdminManagerProduct() {
                     className="px-5 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors shadow-sm"
                     disabled={saving}
                   >
-                    {saving ? "Đang lưu..." : editing ? "Cập nhật" : "Thêm mới"}
+                    {saving ? "Đang lưu...." : editing ? "Cập nhật" : "Thêm mới"}
                   </button>
                 </div>
               </form>

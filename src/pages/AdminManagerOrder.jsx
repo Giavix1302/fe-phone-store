@@ -129,7 +129,7 @@ export default function AdminManagerOrder() {
     <div className="p-6 bg-slate-50 min-h-screen">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold text-slate-800">Quản lý đơn hàng</h2>
-        <div className="text-sm text-slate-500">Admin Panel</div>
+        <div className="text-sm text-slate-500"></div>
       </div>
 
       {/* Summary cards */}
