@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
-import { getAdminOrders, updateOrderStatus } from "../services/OrderApi";
-import { format } from "date-fns";
+import { useEffect, useState, useCallback } from "react";
+import { getAdminOrders, updateOrderStatus } from "../services/orderApi";
 
 const statusColor = {
   PENDING: "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-300",
@@ -42,11 +41,10 @@ export default function AdminManagerOrder() {
   const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const limit = 10;
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getAdminOrders({ search, status, page, limit });
-      console.log("🚀 ~ fetchOrders ~ res:", res);
       setOrders(res.data.orders);
       setPagination(res.data.pagination);
       setSummary(res.data.summary || null);
@@ -54,11 +52,11 @@ export default function AdminManagerOrder() {
       console.log("Lỗi load orders:", error);
     }
     setLoading(false);
-  };
+  }, [search, status, page, limit]);
 
   useEffect(() => {
     fetchOrders();
-  }, [search, status, page]);
+  }, [fetchOrders]);
 
   function formatIsoToVN(isoString) {
     const [datePart, timePart] = isoString.replace("Z", "").split("T");
@@ -106,11 +104,6 @@ export default function AdminManagerOrder() {
       console.error(err);
     }
   };
-
-  const allowedStatuses =
-    selectedOrder && statusFlow[selectedOrder.status]
-      ? statusFlow[selectedOrder.status]
-      : [];
 
   // Khi mở modal: chọn mặc định tiếp theo nếu có, nếu không chọn hiện trạng
   useEffect(() => {
@@ -324,7 +317,7 @@ export default function AdminManagerOrder() {
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex justify-center items-center p-4 z-50">
           <div className="bg-white rounded-2xl w-[420px] shadow-xl overflow-hidden border border-slate-200">
-            <div className="px-6 py-4 bg-gradient-to-r from-slate-800 to-slate-600 text-white">
+            <div className="px-6 py-4 bg-linear-to-r from-slate-800 to-slate-600 text-white">
               <h3 className="text-lg font-semibold">
                 Cập nhật trạng thái đơn hàng
               </h3>
