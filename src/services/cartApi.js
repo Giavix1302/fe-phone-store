@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+import { API_BASE_URL } from "./apiConfig";
 
 /**
  * Thêm sản phẩm vào giỏ hàng

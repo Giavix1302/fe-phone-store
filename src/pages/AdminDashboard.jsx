@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { parseStoredUser } from "../services/authApi";
-
-// Config
-const API_BASE = "https://api.phone.sitedemo.io.vn";
+import { API_BASE_URL } from "../services/apiConfig";
 const getAdminToken = () => localStorage.getItem("token") || "";
 const currency = (v) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(v || 0));
@@ -36,7 +34,7 @@ export default function AdminDashboard() {
   const fetchOverview = async (period) => {
     setLoadingOverview(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/dashboard/overview?period=${period}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/dashboard/overview?period=${period}`, {
         headers: authHeaders(),
       });
       const json = await res.json().catch(() => ({}));
@@ -52,7 +50,7 @@ export default function AdminDashboard() {
   const fetchRevenue = async (period) => {
     setLoadingRevenue(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/dashboard/revenue?period=${period}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/dashboard/revenue?period=${period}`, {
         headers: authHeaders(),
       });
       const json = await res.json().catch(() => ({}));
@@ -68,7 +66,7 @@ export default function AdminDashboard() {
   const fetchOrders = async (period) => {
     setLoadingOrders(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/dashboard/orders?period=${period}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/dashboard/orders?period=${period}`, {
         headers: authHeaders(),
       });
       const json = await res.json().catch(() => ({}));
@@ -84,7 +82,7 @@ export default function AdminDashboard() {
   const fetchProductsAnalytics = async () => {
     setLoadingProducts(true);
     try {
-      const res = await fetch(`${API_BASE}/api/admin/dashboard/products`, {
+      const res = await fetch(`${API_BASE_URL}/admin/dashboard/products`, {
         headers: authHeaders(),
       });
       const json = await res.json().catch(() => ({}));

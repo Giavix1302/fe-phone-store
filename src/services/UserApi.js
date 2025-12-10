@@ -1,4 +1,4 @@
-const API_BASE = "https://api.phone.sitedemo.io.vn";
+import { API_BASE_URL } from "./apiConfig";
 const getAdminToken = () => localStorage.getItem("token") || "";
 
 const toYMD = (d) => {
@@ -42,7 +42,7 @@ export const getAdminUsers = async (params = {}) => {
   if (sort_by && sort_by !== "created_at") qs.set("sort_by", sort_by);
   if (sort_order && sort_order !== "desc") qs.set("sort_order", sort_order);
 
-  const url = `${API_BASE}/api/admin/users?${qs.toString()}`;
+  const url = `${API_BASE_URL}/admin/users?${qs.toString()}`;
 
   try {
     const res = await fetch(url, {
@@ -140,7 +140,7 @@ export const getAdminUsers = async (params = {}) => {
 
 // Get User Detail (Admin)
 export const getAdminUserDetail = async (userId) => {
-  const url = `${API_BASE}/api/admin/users/${encodeURIComponent(userId)}`;
+  const url = `${API_BASE_URL}/admin/users/${encodeURIComponent(userId)}`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -157,7 +157,7 @@ export const getAdminUserDetail = async (userId) => {
 };
 
 export const updateAdminUserStatus = async (userId, enabled, reason) => {
-  const url = `${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/status`;
+  const url = `${API_BASE_URL}/admin/users/${encodeURIComponent(userId)}/status`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
@@ -186,7 +186,7 @@ export const getAdminUserOrders = async (userId, params = {}) => {
   qs.set("limit", String(limit));
   if (status) qs.set("status", status);
 
-  const url = `${API_BASE}/api/admin/users/${encodeURIComponent(userId)}/orders?${qs.toString()}`;
+  const url = `${API_BASE_URL}/admin/users/${encodeURIComponent(userId)}/orders?${qs.toString()}`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -213,7 +213,7 @@ export const getAdminUsersStatistics = async (params = {}) => {
     if (to_date) qs.set("to_date", to_date);
   }
 
-  const url = `${API_BASE}/api/admin/users/statistics?${qs.toString()}`;
+  const url = `${API_BASE_URL}/admin/users/statistics?${qs.toString()}`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -260,7 +260,7 @@ export const getAdminUsersAll = async (opts = {}) => {
   };
 
   const buildUrl = (page) =>
-    `${API_BASE}/api/admin/users?${new URLSearchParams({
+    `${API_BASE_URL}/admin/users?${new URLSearchParams({
       page: String(page),
       limit: String(limit),
     }).toString()}`;

@@ -1,7 +1,6 @@
 // src/pages/AdminManagerProduct.jsx
 import React, { useEffect, useMemo, useState } from "react";
-
-const API_BASE = "http://localhost:8080/api";
+import { API_BASE_URL } from "../services/apiConfig";
 const currency = (v) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
     v || 0
@@ -70,7 +69,7 @@ export default function AdminManagerProduct() {
       if (status !== "all")
         params.append("is_active", status === "active" ? "true" : "false");
       const res = await fetch(
-        `${API_BASE}/api/admin/products?${params.toString()}`,
+        `${API_BASE_URL}/admin/products?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -98,7 +97,7 @@ export default function AdminManagerProduct() {
     try {
       const token = getAdminToken();
       const res = await fetch(
-        `${API_BASE}/api/admin/categories?page=1&limit=200`,
+        `${API_BASE_URL}/admin/categories?page=1&limit=200`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -117,12 +116,15 @@ export default function AdminManagerProduct() {
   const fetchBrands = async () => {
     try {
       const token = getAdminToken();
-      const res = await fetch(`${API_BASE}/api/admin/brands?page=1&limit=200`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/admin/brands?page=1&limit=200`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
       if (!res.ok) return;
       const json = await res.json();
       setBrands(parseListFromResponse(json, "brands"));
@@ -134,7 +136,7 @@ export default function AdminManagerProduct() {
   const fetchColors = async () => {
     try {
       const token = getAdminToken();
-      const res = await fetch(`${API_BASE}/api/admin/colors?page=1&limit=200`, {
+      const res = await fetch(`${API_BASE_URL}/admin/colors?page=1&limit=200`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -321,7 +323,7 @@ export default function AdminManagerProduct() {
     if (!window.confirm("Xóa sản phẩm này?")) return;
     try {
       const token = getAdminToken();
-      const res = await fetch(`${API_BASE}/api/admin/products/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/products/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -336,7 +338,7 @@ export default function AdminManagerProduct() {
   const updateStock = async (id, newStock) => {
     try {
       const token = getAdminToken();
-      const res = await fetch(`${API_BASE}/api/admin/products/${id}/stock`, {
+      const res = await fetch(`${API_BASE_URL}/admin/products/${id}/stock`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -374,7 +376,7 @@ export default function AdminManagerProduct() {
         return;
       }
 
-      const res = await fetch(`${API_BASE}/api/admin/products/${p.id}`, {
+      const res = await fetch(`${API_BASE_URL}/admin/products/${p.id}`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -422,7 +424,7 @@ export default function AdminManagerProduct() {
         if (form.color_id) payload.colorId = Number(form.color_id);
 
         const res = await fetch(
-          `${API_BASE}/api/admin/products/${editing.id}`,
+          `${API_BASE_URL}/admin/products/${editing.id}`,
           {
             method: "PUT",
             headers: {
@@ -470,7 +472,7 @@ export default function AdminManagerProduct() {
           );
         }
 
-        const res = await fetch(`${API_BASE}/api/admin/products`, {
+        const res = await fetch(`${API_BASE_URL}/admin/products`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
           body: fd,
