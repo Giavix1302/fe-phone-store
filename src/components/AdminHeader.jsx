@@ -8,6 +8,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { logout as logoutApi } from "../services/authApi";
+import { emitAuthChanged } from "../utils/authEvents";
 
 const AdminHeader = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -63,9 +65,21 @@ const AdminHeader = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    console.log("Logging out...");
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await logoutApi();
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      emitAuthChanged();
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Still clear local data and redirect even if API fails
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      emitAuthChanged();
+      navigate("/login");
+    }
   };
 
   return (
