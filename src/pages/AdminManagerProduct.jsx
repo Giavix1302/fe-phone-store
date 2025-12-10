@@ -30,6 +30,7 @@ export default function AdminManagerProduct() {
   const [formErrors, setFormErrors] = useState({});
   const [form, setForm] = useState(getEmptyForm());
   const [objectUrls, setObjectUrls] = useState([]);
+  const [uiError, setUiError] = useState("");
 
   function getEmptyForm() {
     return {
@@ -136,36 +137,38 @@ export default function AdminManagerProduct() {
   const fetchColors = async () => {
     try {
       const token = getAdminToken();
-      const res = await fetch(`${API_BASE_URL}/admin/colors?page=1&limit=200`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      const res = await fetch(
+        `${API_BASE_URL}/admin/colors?page=1&limit=20&sort_by=color_name&sort_order=asc`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
       if (!res.ok) {
         console.warn("fetchColors non-ok", res.status);
         return;
       }
       const json = await res.json();
-      let list = [];
-      if (Array.isArray(json)) list = json;
-      else if (Array.isArray(json.data)) list = json.data;
-      else if (json?.data?.colors && Array.isArray(json.data.colors))
-        list = json.data.colors;
-      else if (Array.isArray(json.colors)) list = json.colors;
-      else if (json?.data?.items && Array.isArray(json.data.items))
-        list = json.data.items;
-
+      const list = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json?.data?.colors)
+        ? json.data.colors
+        : Array.isArray(json)
+        ? json
+        : [];
       const normalized = list
         .map((c) => ({
           id: c.id ?? c._id ?? c.value,
           name:
+            c.colorName ??
             c.color_name ??
             c.name ??
             c.title ??
             c.label ??
             `Màu #${c.id ?? c._id ?? ""}`,
-          hex: c.hex_code ?? c.hex ?? c.code ?? "",
+          hex: c.hexCode ?? c.hex_code ?? c.hex ?? c.code ?? "",
         }))
         .filter((c) => c.id);
       setColors(normalized);
@@ -257,6 +260,7 @@ export default function AdminManagerProduct() {
   const openCreate = () => {
     setEditing(null);
     setFormErrors({});
+    setUiError("");
     objectUrls.forEach((u) => URL.revokeObjectURL(u));
     setObjectUrls([]);
     setForm(getEmptyForm());
@@ -269,6 +273,7 @@ export default function AdminManagerProduct() {
   const openEdit = (product) => {
     setEditing(product);
     setFormErrors({});
+    setUiError("");
     const categoryId =
       product.category_id ?? product.categoryId ?? product.category?.id ?? "";
     const brandId =
@@ -407,6 +412,7 @@ export default function AdminManagerProduct() {
 
   const submitForm = async (e) => {
     e.preventDefault();
+    setUiError("");
     if (!validateForm()) return;
     try {
       setSaving(true);
@@ -437,6 +443,7 @@ export default function AdminManagerProduct() {
         if (!res.ok) {
           const text = await res.text();
           console.error("update failed:", res.status, text);
+          setUiError(text || "Cập nhật thất bại.");
           throw new Error("Update failed");
         }
       } else {
@@ -479,13 +486,15 @@ export default function AdminManagerProduct() {
         });
         if (!res.ok) {
           let errText = "";
+          let errJson;
           try {
-            const j = await res.json();
-            errText = JSON.stringify(j);
+            errJson = await res.json();
+            errText = errJson?.message || JSON.stringify(errJson);
           } catch {
             errText = await res.text();
           }
           console.error("create product failed", res.status, errText);
+          setUiError(errText || "Tạo sản phẩm thất bại.");
           throw new Error("Create failed");
         }
       }
@@ -493,7 +502,11 @@ export default function AdminManagerProduct() {
       await fetchProducts();
     } catch (err) {
       console.error("submitForm error", err);
-      alert("Lưu sản phẩm thất bại.");
+      setUiError(
+        err?.message === "Create failed" || err?.message === "Update failed"
+          ? uiError || "Lưu sản phẩm thất bại."
+          : err?.message || "Lưu sản phẩm thất bại."
+      );
     } finally {
       setSaving(false);
     }
@@ -502,13 +515,24 @@ export default function AdminManagerProduct() {
   // ---------- image helpers ----------
   const onImagesChange = (filesList) => {
     const files = Array.from(filesList || []);
+    const allowedMimes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    const allowedExts = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+    const validFiles = files.filter((f) => {
+      const mimeOk = allowedMimes.includes(f.type);
+      const name = (f.name || "").toLowerCase();
+      const extOk = allowedExts.some((ext) => name.endsWith(ext));
+      return mimeOk && extOk;
+    });
+    if (validFiles.length !== files.length) {
+      setUiError("Ảnh không hợp lệ. Chỉ chấp nhận jpg, jpeg, png, gif, webp.");
+    }
     objectUrls.forEach((u) => URL.revokeObjectURL(u));
-    const newUrls = files.map((f) => URL.createObjectURL(f));
+    const newUrls = validFiles.map((f) => URL.createObjectURL(f));
     setObjectUrls(newUrls);
     setForm((f) => ({
       ...f,
-      images: files,
-      image_alts: files.map(() => ""),
+      images: validFiles,
+      image_alts: validFiles.map(() => ""),
       primary_image_index: 0,
     }));
   };
@@ -533,6 +557,15 @@ export default function AdminManagerProduct() {
       const pi = f.primary_image_index || 0;
       const newPi = pi === idx ? 0 : pi > idx ? pi - 1 : pi;
       return { ...f, images, image_alts: alts, primary_image_index: newPi };
+    });
+  };
+
+  const toggleColorId = (id) => {
+    setForm((f) => {
+      const setIds = new Set((f.color_ids || []).map(String));
+      if (setIds.has(String(id))) setIds.delete(String(id));
+      else setIds.add(String(id));
+      return { ...f, color_ids: Array.from(setIds).map(Number) };
     });
   };
 
@@ -929,6 +962,14 @@ export default function AdminManagerProduct() {
                 </button>
               </div>
 
+              {uiError && (
+                <div className="px-6 pt-4">
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-sm px-4 py-3">
+                    {uiError}
+                  </div>
+                </div>
+              )}
+
               <form onSubmit={submitForm} className="flex-1 overflow-y-auto">
                 <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-2 gap-5">
                   {/* Name */}
@@ -1129,44 +1170,84 @@ export default function AdminManagerProduct() {
                         {formErrors.color_id}
                       </p>
                     )}
+                    <div className="flex items-center gap-2 mt-2 text-xs text-slate-600">
+                      <span>Xem trước:</span>
+                      {(() => {
+                        const selected = colors.find(
+                          (c) => String(c.id) === String(form.color_id || "")
+                        );
+                        if (!selected)
+                          return <span className="text-slate-400">Chưa chọn</span>;
+                        return (
+                          <span className="flex items-center gap-2">
+                            <span>{selected.name}</span>
+                            {selected.hex ? (
+                              <span
+                                className="w-5 h-5 rounded-full border border-slate-300 inline-block"
+                                style={{ backgroundColor: selected.hex }}
+                                title={selected.hex}
+                              />
+                            ) : null}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
 
                   {/* Color ids */}
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
-                      Danh sách màu (IDs, phân cách bằng dấu phẩy)
+                      Chọn các màu khả dụng
                     </label>
-                    <input
-                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="VD: 1,2,3"
-                      value={(form.color_ids || []).join(",")}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          color_ids: e.target.value
-                            .split(",")
-                            .map((x) => x.trim())
-                            .filter(Boolean)
-                            .map((x) => Number(x)),
-                        }))
-                      }
-                    />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 border border-slate-200 rounded-lg p-3 max-h-56 overflow-y-auto">
+                      {colors.length === 0 && (
+                        <div className="text-xs text-slate-500 col-span-full">
+                          Không có màu, hãy thêm màu trước.
+                        </div>
+                      )}
+                      {colors.map((c) => {
+                        const checked = (form.color_ids || [])
+                          .map(String)
+                          .includes(String(c.id));
+                        return (
+                          <label
+                            key={c.id}
+                            className="flex items-center gap-2 text-sm text-slate-700"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleColorId(c.id)}
+                            />
+                            <span className="flex items-center gap-2">
+                              <span>{c.name}</span>
+                              {c.hex ? (
+                                <span
+                                  className="w-4 h-4 rounded border border-slate-300 inline-block"
+                                  style={{ backgroundColor: c.hex }}
+                                />
+                              ) : null}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                     <p className="text-xs text-slate-500 mt-1.5">
-                      Nếu không có màu, có thể để trống.
+                      Tick để thêm các màu phụ. Màu mặc định chọn ở dropdown bên trên.
                     </p>
                   </div>
 
                   {/* Images (create only) */}
                   {!editing && (
                     <>
-                      <div className="md:col-span-2">
+                  <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-slate-700 mb-2">
                           Hình ảnh <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="file"
                           multiple
-                          accept="image/*"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
                           className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 ${
                             formErrors.images
                               ? "border-red-500 focus:ring-red-500"
