@@ -1,16 +1,41 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { parseStoredUser } from "../services/authApi";
 
-const PrivateRoute = ({ children }) => {
+/**
+ * Route bảo vệ:
+ * - Kiểm tra đã đăng nhập (có token & user)
+ * - Nếu có truyền `roles` thì chỉ cho phép user có role phù hợp.
+ *
+ * Ví dụ dùng:
+ *  - Chỉ cần đăng nhập:
+ *      <PrivateRoute>
+ *        <Profile />
+ *      </PrivateRoute>
+ *
+ *  - Chỉ cho ADMIN:
+ *      <PrivateRoute roles={['ADMIN']}>
+ *        <AdminDashboard />
+ *      </PrivateRoute>
+ */
+const PrivateRoute = ({ children, roles }) => {
   const location = useLocation();
 
-  // Mock check authentication - thực tế sẽ lấy từ context/redux
-  const isAuthenticated = () => {
-    return localStorage.getItem("token") !== null;
-  };
+  const token = localStorage.getItem("token");
+  const user = parseStoredUser();
 
-  if (!isAuthenticated()) {
-    // Redirect to login page with return url
+  // Chưa đăng nhập
+  if (!token || !user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Kiểm tra role nếu có truyền
+  if (roles && roles.length > 0) {
+    const userRole = user.role || user?.roles?.[0];
+
+    if (!userRole || !roles.includes(userRole)) {
+      // Không đủ quyền: điều hướng về trang chủ (hoặc trang 403 tuỳ bạn)
+      return <Navigate to="/" replace />;
+    }
   }
 
   return children;

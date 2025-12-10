@@ -1,62 +1,131 @@
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+
+// Layouts
 import Layout from "../layouts/Layout";
+import AdminLayout from "../layouts/AdminLayout";
+
+// Public pages
 import Home from "../pages/Home";
 import Products from "../pages/Products";
 import ProductDetail from "../pages/ProductDetail";
 import Login from "../pages/Login";
-import { Cart } from "../pages/Cart";
 import Register from "../pages/Register";
-import PrivateRoute from "./PrivateRoute";
-import Profile from "../pages/Profile";
-import NotFound from "../pages/NotFound";
+import { Cart } from "../pages/Cart";        // cart public của bạn
+import CartPage from "../pages/Cart";        // cart private của thach
+import Checkout from "../pages/Checkout";
+import VerifyEmail from "../pages/VerifyEmail";
 
-// Router configuration
-const AppRouter = () => {
+// Customer pages
+import Profile from "../pages/Profile";
+import Orders from "../pages/Orders";
+import OrderDetail from "../pages/OrderDetail";
+
+// Admin pages
+import AdminDashboard from "../pages/AdminDashboard";
+// import AdminManagerProduct from "../pages/AdminManagerProduct";
+// import AdminManagerOrder from "../pages/AdminManagerOrder";
+// import AdminManagerUser from "../pages/AdminManagerUser";
+import AdminAnalytics from "../pages/AdminAnalytics";
+
+// Middleware
+import PrivateRoute from "./PrivateRoute";
+
+export default function AppRouter() {
   return (
     <Router>
       <Routes>
-        {/* Public routes with Layout */}
+
+        {/* PUBLIC ROUTES */}
         <Route path="/" element={<Layout />}>
-          {/* Trang chủ */}
           <Route index element={<Home />} />
 
-          {/* Sản phẩm */}
+          {/* PRODUCT ROUTES */}
           <Route path="products" element={<Products />} />
-          <Route path="products/:id" element={<ProductDetail />} />
+          <Route path="products/:slug" element={<ProductDetail />} />
           <Route path="products/category/:category" element={<Products />} />
+          <Route path="product/:id" element={<ProductDetail />} />
 
-          {/* Giỏ hàng */}
+          {/* CART PUBLIC */}
           <Route path="cart" element={<Cart />} />
 
-          {/* Auth routes - không cần đăng nhập */}
+          {/* CHECKOUT */}
+          <Route
+            path="checkout"
+            element={
+              <PrivateRoute>
+                <Checkout />
+              </PrivateRoute>
+            }
+          />
+
+          {/* AUTH */}
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
 
-          {/* Private routes - cần đăng nhập */}
+          {/* CUSTOMER PRIVATE ROUTES */}
           <Route
             path="profile"
             element={
-              <PrivateRoute>
+              <PrivateRoute roles={["USER", "ADMIN"]}>
                 <Profile />
               </PrivateRoute>
             }
           />
 
-          {/* Redirect old paths */}
-          <Route path="home" element={<Navigate to="/" replace />} />
-          <Route path="shop" element={<Navigate to="/products" replace />} />
+          <Route
+            path="orders"
+            element={
+              <PrivateRoute>
+                <Orders />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="orders/:orderNumber"
+            element={
+              <PrivateRoute>
+                <OrderDetail />
+              </PrivateRoute>
+            }
+          />
+
+          {/* CART PRIVATE (thach) */}
+          <Route
+            path="cart"
+            element={
+              <PrivateRoute roles={["USER", "ADMIN"]}>
+                <CartPage />
+              </PrivateRoute>
+            }
+          />
         </Route>
 
-        {/* 404 Page - không có Layout */}
-        <Route path="*" element={<NotFound />} />
+        {/* ADMIN ROUTES */}
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute roles={["ADMIN"]}>
+              <AdminLayout />
+            </PrivateRoute>
+          }
+        >
+          <Route path="dashboard" element={<AdminDashboard />} />
+          {/* <Route path="products" element={<AdminManagerProduct />} />
+          <Route path="orders" element={<AdminManagerOrder />} />
+          <Route path="users" element={<AdminManagerUser />} /> */}
+          <Route path="analytics" element={<AdminAnalytics />} />
+        </Route>
+
+        {/* NOT FOUND */}
+        <Route path="*" element={<h2>404 - Page Not Found</h2>} />
       </Routes>
     </Router>
   );
-};
-
-export default AppRouter;
+}
