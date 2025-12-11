@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { fetchProducts, fetchCategories, fetchBrands } from "../services/productApi";
+import {
+  fetchProducts,
+  fetchCategories,
+  fetchBrands,
+} from "../services/productApi";
 
 const Products = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,12 +23,8 @@ const Products = () => {
   const [selectedBrand, setSelectedBrand] = useState(
     searchParams.get("brand_id") || ""
   );
-  const [minPrice, setMinPrice] = useState(
-    searchParams.get("min_price") || ""
-  );
-  const [maxPrice, setMaxPrice] = useState(
-    searchParams.get("max_price") || ""
-  );
+  const [minPrice, setMinPrice] = useState(searchParams.get("min_price") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("max_price") || "");
   const [sortBy, setSortBy] = useState(
     searchParams.get("sort_by") || "created_at"
   );
@@ -95,7 +95,6 @@ const Products = () => {
     loadProducts();
   }, [loadProducts]);
 
-
   useEffect(() => {
     setSearch(searchParams.get("search") || "");
     setSelectedCategoryId(searchParams.get("category_id") || "");
@@ -109,7 +108,7 @@ const Products = () => {
 
   const applyFilters = () => {
     const newParams = new URLSearchParams();
-    
+
     if (search) newParams.set("search", search);
     if (selectedCategoryId) newParams.set("category_id", selectedCategoryId);
     if (selectedBrand) newParams.set("brand_id", selectedBrand);
@@ -118,7 +117,7 @@ const Products = () => {
     if (sortBy) newParams.set("sort_by", sortBy);
     if (sortOrder) newParams.set("sort_order", sortOrder);
     newParams.set("page", "1");
-    
+
     setSearchParams(newParams);
     setCurrentPage(1);
   };
@@ -177,7 +176,9 @@ const Products = () => {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-1">
-          {activeCategory?.description || getCategoryLabel(activeCategory?.name) || "Tất cả sản phẩm"}
+          {activeCategory?.description ||
+            getCategoryLabel(activeCategory?.name) ||
+            "Tất cả sản phẩm"}
         </h1>
         {activeCategory?.description && (
           <p className="text-sm text-gray-500">
@@ -328,8 +329,12 @@ const Products = () => {
           {products.length === 0 ? (
             <div className="text-center py-16">
               <div className="text-6xl mb-4">😕</div>
-              <h2 className="text-2xl font-bold mb-2">Không tìm thấy sản phẩm</h2>
-              <p className="text-gray-600 mb-4">Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác</p>
+              <h2 className="text-2xl font-bold mb-2">
+                Không tìm thấy sản phẩm
+              </h2>
+              <p className="text-gray-600 mb-4">
+                Thử điều chỉnh bộ lọc hoặc tìm kiếm với từ khóa khác
+              </p>
               <button
                 onClick={clearFilters}
                 className="text-blue-600 hover:underline"
@@ -371,9 +376,22 @@ const Products = () => {
                           {product.brand?.name || ""}
                         </span>
                       </div>
-                      <p className="text-xl font-bold text-red-600">
-                        {formatPrice(product.discount_price ?? product.price)}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {product.discount_price ? (
+                          <>
+                            <p className="text-lg font-bold text-red-600">
+                              {formatPrice(product.discount_price || 0)}
+                            </p>
+                            <p className="text-sm text-gray-400 line-through">
+                              {formatPrice(product.price || 0)}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xl font-bold text-red-600">
+                            {formatPrice(product.price || 0)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -383,7 +401,9 @@ const Products = () => {
               {pagination && pagination.total_pages > 1 && (
                 <div className="mt-8 flex items-center justify-center gap-2">
                   <button
-                    onClick={() => handlePageChange(pagination.current_page - 1)}
+                    onClick={() =>
+                      handlePageChange(pagination.current_page - 1)
+                    }
                     disabled={!pagination.has_prev}
                     className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >
@@ -393,7 +413,9 @@ const Products = () => {
                     Trang {pagination.current_page} / {pagination.total_pages}
                   </span>
                   <button
-                    onClick={() => handlePageChange(pagination.current_page + 1)}
+                    onClick={() =>
+                      handlePageChange(pagination.current_page + 1)
+                    }
                     disabled={!pagination.has_next}
                     className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
                   >

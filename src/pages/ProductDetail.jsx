@@ -35,7 +35,9 @@ const ProductDetail = () => {
   const formatPrice = (price) => {
     if (price == null) return "";
     const numeric =
-      typeof price === "number" ? price : parseInt(String(price) || "0", 10) || 0;
+      typeof price === "number"
+        ? price
+        : parseInt(String(price) || "0", 10) || 0;
     return numeric.toLocaleString("vi-VN") + "₫";
   };
 
@@ -113,7 +115,7 @@ const ProductDetail = () => {
         </div>
 
         {/* Product Info */}
-          <div className="space-y-6">
+        <div className="space-y-6">
           {/* Header */}
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -148,24 +150,39 @@ const ProductDetail = () => {
           </div>
 
           {/* Price */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-4">
-              <span className="text-3xl font-bold text-red-600">
-                {formatPrice(product.discount_price ?? product.price)}
-              </span>
-              {product.discount_price && (
-                <span className="text-xl text-gray-400 line-through">
+          <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+            {product.discount_price ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Giá gốc:</span>
+                  <span className="text-lg text-gray-400 line-through">
+                    {formatPrice(product.price)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 font-semibold">
+                    Giá khuyến mãi:
+                  </span>
+                  <span className="text-3xl font-bold text-red-600">
+                    {formatPrice(product.discount_price)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
+                  <span className="text-green-700 font-medium">Tiết kiệm:</span>
+                  <span className="text-green-700 font-bold">
+                    {formatPrice(
+                      (product.price || 0) - (product.discount_price || 0)
+                    )}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Giá:</span>
+                <span className="text-3xl font-bold text-red-600">
                   {formatPrice(product.price)}
                 </span>
-              )}
-            </div>
-            {product.discount_price && (
-              <p className="text-green-600 font-medium">
-                Tiết kiệm:{" "}
-                {formatPrice(
-                  (product.price || 0) - (product.discount_price || 0)
-                )}
-              </p>
+              </div>
             )}
           </div>
 
@@ -224,7 +241,7 @@ const ProductDetail = () => {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-               onClick={() => setShowModal(true)}
+                onClick={() => setShowModal(true)}
                 className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition font-medium"
               >
                 🛒 Thêm vào giỏ hàng
