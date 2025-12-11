@@ -112,7 +112,7 @@ const Layout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <header className="bg-gray-100 shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -407,7 +407,7 @@ const Layout = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-dark-200 text-gray-200 py-8 mt-16">
+      <footer className="bg-dark-200 text-gray-200 py-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p>&copy; 2024 PhoneStore. Tất cả quyền được bảo lưu.</p>
         </div>

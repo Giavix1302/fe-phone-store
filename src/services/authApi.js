@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./apiConfig";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 /**
  * Perform login request.
@@ -262,6 +262,112 @@ export const uploadAvatar = async (file) => {
   }
 
   return result?.data;
+};
+
+/**
+ * Request password reset (forgot password).
+ * @param {{ email: string }} payload
+ * @returns {Promise<{ email: string; message: string }>}
+ */
+export const forgotPassword = async (payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      // Response is not JSON
+      if (!response.ok) {
+        throw new Error(
+          `Không thể gửi mã đặt lại mật khẩu. Lỗi ${response.status}: ${response.statusText}`
+        );
+      }
+      throw new Error("Phản hồi không hợp lệ từ máy chủ.");
+    }
+
+    if (!response.ok) {
+      // Backend uses ErrorResponse format (not ApiResponse) for errors
+      // ErrorResponse has: message, errorCode, statusCode, path, errors (optional)
+      const errorMessage =
+        result?.message ||
+        result?.error ||
+        result?.errorMessage ||
+        result?.data?.message ||
+        `Không thể gửi mã đặt lại mật khẩu. ${response.status === 404 ? "Email không tồn tại trong hệ thống." : response.status === 400 ? "Email không hợp lệ hoặc tài khoản chưa được kích hoạt." : response.status === 500 ? "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau hoặc liên hệ hỗ trợ." : "Vui lòng thử lại sau."}`;
+      throw new Error(errorMessage);
+    }
+
+    // Success response uses ApiResponse format: { success: true, message: "...", data: {...} }
+    return result?.data ?? result;
+  } catch (error) {
+    // If it's already an Error with message, re-throw it
+    if (error instanceof Error) {
+      throw error;
+    }
+    // Otherwise, wrap it
+    throw new Error(
+      error?.message || "Không thể gửi mã đặt lại mật khẩu. Vui lòng thử lại sau."
+    );
+  }
+};
+
+/**
+ * Reset password with reset code.
+ * @param {{ email: string; reset_code: string; new_password: string }} payload
+ * @returns {Promise<{ email: string; reset_at: string }>}
+ */
+export const resetPassword = async (payload) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      // Response is not JSON
+      if (!response.ok) {
+        throw new Error(
+          `Không thể đặt lại mật khẩu. Lỗi ${response.status}: ${response.statusText}`
+        );
+      }
+      throw new Error("Phản hồi không hợp lệ từ máy chủ.");
+    }
+
+    if (!response.ok) {
+      // Try to get error message from various possible fields
+      const errorMessage =
+        result?.message ||
+        result?.error ||
+        result?.errorMessage ||
+        result?.data?.message ||
+        `Không thể đặt lại mật khẩu. ${response.status === 400 ? "Mã đặt lại mật khẩu không đúng hoặc đã hết hạn." : response.status === 404 ? "Email không tồn tại trong hệ thống." : "Vui lòng kiểm tra lại mã xác thực."}`;
+      throw new Error(errorMessage);
+    }
+
+    return result?.data ?? result;
+  } catch (error) {
+    // If it's already an Error with message, re-throw it
+    if (error instanceof Error) {
+      throw error;
+    }
+    // Otherwise, wrap it
+    throw new Error(
+      error?.message || "Không thể đặt lại mật khẩu. Vui lòng kiểm tra lại mã xác thực."
+    );
+  }
 };
 
 /**

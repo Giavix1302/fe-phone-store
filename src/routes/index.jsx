@@ -20,6 +20,8 @@ import { Cart } from "../pages/Cart";        // cart public của bạn
 import CartPage from "../pages/Cart";        // cart private của thach
 import Checkout from "../pages/Checkout";
 import VerifyEmail from "../pages/VerifyEmail";
+import ForgotPassword from "../pages/ForgotPassword";
+import ResetPassword from "../pages/ResetPassword";
 
 // Customer pages
 import Profile from "../pages/Profile";
@@ -67,6 +69,8 @@ export default function AppRouter() {
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="verify-email" element={<VerifyEmail />} />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password" element={<ResetPassword />} />
 
           {/* CUSTOMER PRIVATE ROUTES */}
           <Route
