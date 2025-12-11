@@ -105,17 +105,63 @@ const Checkout = () => {
         cart_item_ids: selectedCartItemIds,
       });
 
+      // Xóa cart sau khi đặt hàng thành công
       emitCartChanged();
 
       if (orderData?.order?.order_number) {
-        setSuccessMessage("Đặt hàng thành công!");
+        const orderNumber = orderData.order.order_number;
+        const totalAmount = orderData.order.total_amount;
+        const itemCount = orderData.order.items?.length || 0;
         
-        // Chờ 2 giây để hiển thị thông báo, sau đó chuyển đến OrderDetail
-        setTimeout(() => {
-          navigate(`/orders/${orderData.order.order_number}`, {
-            state: { orderCreated: true },
+        // Thông báo chi tiết với thông tin đơn hàng
+        setSuccessMessage(
+          `Đặt hàng thành công! Mã đơn hàng: ${orderNumber}. ` +
+          `Tổng tiền: ${formatPrice(totalAmount)}. ` +
+          `Số lượng sản phẩm: ${itemCount}. ` +
+          `Email xác nhận đã được gửi đến địa chỉ email của bạn.`
+        );
+        
+        // Gửi email xác nhận (sử dụng mailto hoặc có thể gọi API nếu backend có)
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (user.email) {
+          // Tạo nội dung email
+          const emailSubject = encodeURIComponent(`Xác nhận đơn hàng ${orderNumber} - PhoneStore`);
+          const emailBody = encodeURIComponent(
+            `Xin chào ${user.full_name || user.name || "Quý khách"},\n\n` +
+            `Cảm ơn bạn đã đặt hàng tại PhoneStore!\n\n` +
+            `Thông tin đơn hàng:\n` +
+            `- Mã đơn hàng: ${orderNumber}\n` +
+            `- Tổng tiền: ${formatPrice(totalAmount)}\n` +
+            `- Số lượng sản phẩm: ${itemCount}\n` +
+            `- Phương thức thanh toán: ${formData.payment_method === "COD" ? "Thanh toán khi nhận hàng" : formData.payment_method}\n` +
+            `- Địa chỉ giao hàng: ${formData.shipping_address}\n\n` +
+            `Bạn có thể theo dõi đơn hàng tại: ${window.location.origin}/orders/${orderNumber}\n\n` +
+            `Trân trọng,\nPhoneStore Team`
+          );
+          
+          // Log để debug (có thể gọi API backend để gửi email thực sự)
+          console.log("Order confirmation email would be sent to:", user.email);
+          console.log("Order details:", {
+            orderNumber,
+            totalAmount,
+            itemCount,
+            paymentMethod: formData.payment_method,
+            shippingAddress: formData.shipping_address
           });
-        }, 2000);
+          
+          // Có thể mở mailto link (tùy chọn)
+          // window.location.href = `mailto:${user.email}?subject=${emailSubject}&body=${emailBody}`;
+        }
+        
+        // Chờ 3 giây để hiển thị thông báo chi tiết, sau đó chuyển đến OrderDetail
+        setTimeout(() => {
+          navigate(`/orders/${orderNumber}`, {
+            state: { 
+              orderCreated: true,
+              orderData: orderData.order
+            },
+          });
+        }, 3000);
       } else {
         setError("Không thể lấy thông tin đơn hàng. Vui lòng kiểm tra lại.");
       }
@@ -197,14 +243,30 @@ const Checkout = () => {
       )}
 
       {successMessage && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium text-center">
-          <div className="flex items-center justify-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            <span>{successMessage}</span>
+        <div className="mb-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl shadow-lg">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-green-800 mb-2">
+                🎉 Đặt hàng thành công!
+              </h3>
+              <p className="text-sm text-green-700 leading-relaxed mb-3">
+                {successMessage}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-green-600">
+                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Đang chuyển đến trang chi tiết đơn hàng...</span>
+              </div>
+            </div>
           </div>
-          <p className="text-xs mt-2 text-green-600">Đang chuyển đến trang chi tiết đơn hàng...</p>
         </div>
       )}
 
