@@ -355,10 +355,6 @@ const Products = () => {
                       <img
                         src={
                           product.primary_image
-                            ? product.primary_image.startsWith("http")
-                              ? product.primary_image
-                              : `http://localhost:8080${product.primary_image}`
-                            : "https://via.placeholder.com/300x300?text=No+Image"
                         }
                         alt={product.name}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
