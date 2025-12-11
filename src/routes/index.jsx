@@ -32,6 +32,7 @@ import AdminDashboard from "../pages/AdminDashboard";
 // import AdminManagerOrder from "../pages/AdminManagerOrder";
 // import AdminManagerUser from "../pages/AdminManagerUser";
 import AdminAnalytics from "../pages/AdminAnalytics";
+import AdminCategoryBrandColor from "../pages/AdminCategoryBrandColor";
 
 // Middleware
 import PrivateRoute from "./PrivateRoute";
@@ -120,7 +121,7 @@ export default function AppRouter() {
           {/* <Route path="products" element={<AdminManagerProduct />} />
           <Route path="orders" element={<AdminManagerOrder />} />
           <Route path="users" element={<AdminManagerUser />} /> */}
-          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="category" element={<AdminCategoryBrandColor />} />
         </Route>
 
         {/* NOT FOUND */}

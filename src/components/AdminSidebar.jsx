@@ -14,7 +14,7 @@ const AdminSidebar = () => {
   const menuItems = [
     {
       path: "/admin/dashboard",
-      icon: <LayoutDashboard size={20} />,
+      icon: <BarChart3 size={20} />,
       label: "Dashboard",
     },
     {
@@ -33,9 +33,9 @@ const AdminSidebar = () => {
       label: "Người dùng",
     },
     {
-      path: "/admin/analytics",
-      icon: <BarChart3 size={20} />,
-      label: "Thống kê",
+      path: "/admin/category",
+      icon: <LayoutDashboard size={20} />,
+      label: "Danh mục",
     },
   ];
 
