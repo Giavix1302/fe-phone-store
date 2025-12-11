@@ -2,8 +2,8 @@
 // CLIENT ORDER API
 // =======================
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+import { API_BASE_URL } from "./apiConfig";
+
 
 /**
  * Tạo đơn hàng từ giỏ hàng
@@ -140,7 +140,7 @@ export const cancelOrder = async (orderNumber, payload = {}) => {
 // ADMIN ORDER API
 // =======================
 
-const API_BASE = "http://localhost:8080";
+//const API_BASE = "http://localhost:8080";
 const getAdminToken = () => localStorage.getItem("token") || "";
 
 /**
@@ -170,7 +170,7 @@ export const getAdminOrders = async (params = {}) => {
   if (sort_by) qs.set("sort_by", sort_by);
   if (sort_order) qs.set("sort_order", sort_order);
 
-  const res = await fetch(`${API_BASE}/api/admin/orders?${qs.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders?${qs.toString()}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${getAdminToken()}`,
@@ -216,7 +216,7 @@ export const updateOrderStatus = async (orderNumber, payload) => {
     }
   }
 
-  const res = await fetch(`${API_BASE}/api/admin/orders/${safeOrder}/status`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/${safeOrder}/status`, {
     method: "PUT",
     headers: {
       Authorization: `Bearer ${getAdminToken()}`,
