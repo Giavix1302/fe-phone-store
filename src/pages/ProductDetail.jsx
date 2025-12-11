@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { fetchProductDetail } from "../services/productApi";
+import { getCart } from "../services/cartApi";
 import Review from "../component/Review";
 import ModalAddItemToCart from "../component/ModalAddItemToCart";
 
@@ -12,6 +13,7 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showBuyNowModal, setShowBuyNowModal] = useState(false);
   useEffect(() => {
     const load = async () => {
       if (!slug) return;
@@ -45,8 +47,30 @@ const ProductDetail = () => {
   // };
 
   const handleBuyNow = () => {
-    // Mock buy now
-    alert(`Mua ngay ${quantity} ${product.name}!`);
+    setShowBuyNowModal(true);
+  };
+
+  const handleBuyNowSuccess = async (buyNowData) => {
+    try {
+      const { product_id, color_id, quantity, product: productInfo } = buyNowData || {};
+      
+      // Buy now flow: navigate directly to checkout WITHOUT adding to cart
+      navigate("/checkout", {
+        state: { 
+          fromBuyNow: true,
+          productSlug: slug,
+          buyNowProduct: {
+            product_id,
+            color_id,
+            quantity,
+            product: productInfo // Pass full product info for display
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Error navigating to checkout:", err);
+      setError("Có lỗi xảy ra. Vui lòng thử lại.");
+    }
   };
 
   if (loading) {
@@ -260,6 +284,13 @@ const ProductDetail = () => {
           // Optional: Show success message, update cart count, etc.
           console.log("Đã thêm vào giỏ hàng!");
         }}
+      />
+      <ModalAddItemToCart
+        isOpen={showBuyNowModal}
+        onClose={() => setShowBuyNowModal(false)}
+        product={product}
+        buyNowMode={true}
+        onBuyNow={handleBuyNowSuccess}
       />
     </div>
   );

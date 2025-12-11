@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getCart } from "../services/cartApi";
+import { getCart, removeItem } from "../services/cartApi";
 import { createOrder } from "../services/orderApi";
 import { emitCartChanged } from "../utils/cartEvents";
 
@@ -19,9 +19,25 @@ const Checkout = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const selectedCartItemIds = location.state?.cartItemIds || [];
+  const fromBuyNow = location.state?.fromBuyNow || false;
+  const productSlug = location.state?.productSlug || null;
+  const buyNowProduct = location.state?.buyNowProduct || null;
 
   useEffect(() => {
-    loadCart();
+    if (!fromBuyNow) {
+      loadCart();
+    } else {
+      // Buy now flow - don't load cart, just set loading to false
+      setLoading(false);
+      // Pre-fill shipping address from user profile if available
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (user.address && !formData.shipping_address) {
+        setFormData((prev) => ({
+          ...prev,
+          shipping_address: user.address,
+        }));
+      }
+    }
   }, []);
 
   const loadCart = async () => {
@@ -68,6 +84,12 @@ const Checkout = () => {
   };
 
   const calculateSelectedTotal = () => {
+    if (fromBuyNow && buyNowProduct) {
+      // Buy now: calculate from product info
+      const product = buyNowProduct.product;
+      const unitPrice = product.discount_price || product.price || 0;
+      return parseFloat(unitPrice) * (buyNowProduct.quantity || 1);
+    }
     if (!cart?.items) return 0;
     return cart.items
       .filter((item) => selectedCartItemIds.includes(item.id))
@@ -78,6 +100,26 @@ const Checkout = () => {
   };
 
   const getSelectedItems = () => {
+    if (fromBuyNow && buyNowProduct) {
+      // Buy now: return mock cart item from product info
+      const product = buyNowProduct.product;
+      return [{
+        id: 'buy-now',
+        product_id: buyNowProduct.product_id,
+        product: {
+          id: product.id,
+          name: product.name,
+          images: product.images || []
+        },
+        color: buyNowProduct.color_id ? {
+          id: buyNowProduct.color_id,
+          color_name: product.available_colors?.find(c => c.id === buyNowProduct.color_id)?.color_name || ''
+        } : null,
+        quantity: buyNowProduct.quantity || 1,
+        unit_price: product.discount_price || product.price || 0,
+        line_total: (parseFloat(product.discount_price || product.price || 0) * (buyNowProduct.quantity || 1)).toString()
+      }];
+    }
     if (!cart?.items) return [];
     return cart.items.filter((item) => selectedCartItemIds.includes(item.id));
   };
@@ -90,20 +132,38 @@ const Checkout = () => {
       return;
     }
 
-    if (selectedCartItemIds.length === 0) {
+    if (!fromBuyNow && selectedCartItemIds.length === 0) {
       setError("Vui lòng chọn sản phẩm để thanh toán");
+      return;
+    }
+
+    if (fromBuyNow && !buyNowProduct) {
+      setError("Thông tin sản phẩm không hợp lệ");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const orderData = await createOrder({
+      const orderPayload = {
         shipping_address: formData.shipping_address.trim(),
         payment_method: formData.payment_method,
         note: formData.note.trim() || null,
-        cart_item_ids: selectedCartItemIds,
-      });
+      };
+
+      if (fromBuyNow && buyNowProduct) {
+        // Buy now: send buy_now_items instead of cart_item_ids
+        orderPayload.buy_now_items = [{
+          product_id: buyNowProduct.product_id,
+          color_id: buyNowProduct.color_id,
+          quantity: buyNowProduct.quantity
+        }];
+      } else {
+        // Normal cart flow
+        orderPayload.cart_item_ids = selectedCartItemIds;
+      }
+
+      const orderData = await createOrder(orderPayload);
 
       // Xóa cart sau khi đặt hàng thành công
       emitCartChanged();
@@ -184,6 +244,16 @@ const Checkout = () => {
     }
   };
 
+  const handleCancelBuyNow = () => {
+    // If from buy now, just go back to product page (no cart item to remove)
+    if (fromBuyNow && productSlug) {
+      navigate(`/products/${productSlug}`);
+    } else {
+      // Normal checkout - go back to cart
+      navigate("/cart");
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -195,7 +265,7 @@ const Checkout = () => {
     );
   }
 
-  if (!cart || !cart.items || cart.items.length === 0) {
+  if (!fromBuyNow && (!cart || !cart.items || cart.items.length === 0)) {
     return (
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-8">Thanh toán</h1>
@@ -222,10 +292,10 @@ const Checkout = () => {
         <div className="text-center py-16">
           <div className="text-red-600 mb-4">Không có sản phẩm nào được chọn</div>
           <button
-            onClick={() => navigate("/cart")}
+            onClick={fromBuyNow && productSlug ? handleCancelBuyNow : () => navigate("/cart")}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
           >
-            Quay lại giỏ hàng
+            {fromBuyNow && productSlug ? "Quay lại sản phẩm" : "Quay lại giỏ hàng"}
           </button>
         </div>
       </div>
@@ -234,7 +304,18 @@ const Checkout = () => {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold mb-8">Thanh toán</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold">Thanh toán</h1>
+        {fromBuyNow && productSlug && (
+          <button
+            onClick={handleCancelBuyNow}
+            className="text-gray-600 hover:text-gray-800 flex items-center gap-2 transition"
+          >
+            <span>←</span>
+            <span>Quay lại sản phẩm</span>
+          </button>
+        )}
+      </div>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">

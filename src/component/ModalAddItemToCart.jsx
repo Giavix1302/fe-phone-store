@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { addToCart } from "../services/cartApi";
 import { emitCartChanged } from "../utils/cartEvents";
 
-const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
+const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess, buyNowMode = false, onBuyNow }) => {
     const [selectedColor, setSelectedColor] = useState(null);
     const [quantity, setQuantity] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -75,6 +75,25 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
         setError("");
 
         try {
+            // If buy now mode, don't add to cart, just call onBuyNow with product info
+            if (buyNowMode && onBuyNow) {
+                onBuyNow({
+                    product_id: product.id,
+                    color_id: selectedColor,
+                    quantity: quantity,
+                    product: product, // Pass full product info for checkout
+                    buyNowMode: true
+                });
+                setTimeout(() => {
+                    onClose();
+                    setQuantity(1);
+                    setError("");
+                }, 100);
+                setLoading(false);
+                return;
+            }
+
+            // Normal add to cart flow
             const result = await addToCart({
                 product_id: product.id,
                 color_id: selectedColor,
@@ -118,7 +137,7 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
             >
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-lg font-semibold">Thêm vào giỏ hàng</h2>
+                    <h2 className="text-lg font-semibold">{buyNowMode ? "Mua ngay" : "Thêm vào giỏ hàng"}</h2>
                     <button
                         onClick={onClose}
                         className="text-gray-500 hover:text-gray-700 text-xl"
@@ -234,9 +253,16 @@ const ModalAddItemToCart = ({ isOpen, onClose, product, onSuccess }) => {
                         <button
                             onClick={handleAddToCart}
                             disabled={loading || !selectedColor || quantity < 1}
-                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition disabled:opacity-50"
+                            className={`flex-1 py-2 rounded-lg text-sm transition disabled:opacity-50 ${
+                                buyNowMode 
+                                    ? "bg-red-600 text-white hover:bg-red-700" 
+                                    : "bg-blue-600 text-white hover:bg-blue-700"
+                            }`}
                         >
-                            {loading ? "Đang thêm..." : "Thêm vào giỏ"}
+                            {loading 
+                                ? (buyNowMode ? "Đang xử lý..." : "Đang thêm...") 
+                                : (buyNowMode ? "Mua ngay" : "Thêm vào giỏ")
+                            }
                         </button>
                     </div>
                 </div>
