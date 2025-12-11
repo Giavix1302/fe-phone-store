@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { getAdminUsersAll, getAdminUserDetail } from "../services/UserApi";
+import { getAdminUsersAll, getAdminUserDetail, updateAdminUserStatus } from "../services/UserApi";
 
 const badgeColor = (enabled) =>
   enabled ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200" : "bg-rose-100 text-rose-800 ring-1 ring-rose-200";
@@ -12,6 +12,7 @@ export default function AdminManagerUser() {
   // Filters
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState(""); // "" | "enabled" | "disabled"
+  const [updatingId, setUpdatingId] = useState(null);
 
   // Detail drawer
   const [detailOpen, setDetailOpen] = useState(false);
@@ -133,6 +134,35 @@ export default function AdminManagerUser() {
       });
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const toggleStatus = async (user, nextEnabled) => {
+    if (!user?.id) return;
+    setUpdatingId(user.id);
+    try {
+      await updateAdminUserStatus(user.id, nextEnabled, nextEnabled ? "enable-by-admin" : "disable-by-admin");
+      // update list locally
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, enabled: nextEnabled } : u))
+      );
+      // update detail if open
+      if (selectedUser?.id === user.id) {
+        setSelectedUser((u) => (u ? { ...u, enabled: nextEnabled } : u));
+        setDetailData((d) =>
+          d
+            ? {
+                ...d,
+                user_info: { ...(d.user_info || {}), enabled: nextEnabled },
+              }
+            : d
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "Không thể cập nhật trạng thái người dùng");
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -261,13 +291,13 @@ export default function AdminManagerUser() {
                 <th className="p-3">Đã chi</th>
                 <th className="p-3">Lần đăng nhập cuối</th>
                 <th className="p-3">Ngày tạo</th>
-                {/* removed Thao tác */}
+                <th className="p-3 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="text-center py-6 text-slate-500">Không có người dùng</td>
+                  <td colSpan="10" className="text-center py-6 text-slate-500">Không có người dùng</td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
@@ -300,7 +330,27 @@ export default function AdminManagerUser() {
                     <td className="p-3 text-slate-700">
                       {u.created_at ? new Date(u.created_at).toLocaleString("vi-VN") : "-"}
                     </td>
-                    {/* removed actions cell */}
+                    <td className="p-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          className="px-3 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-100"
+                          onClick={() => openDetail(u)}
+                        >
+                          Xem
+                        </button>
+                        <button
+                          className={`px-3 py-1.5 text-xs rounded-md border ${
+                            u.enabled
+                              ? "border-rose-300 text-rose-700 hover:bg-rose-50"
+                              : "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                          } disabled:opacity-50`}
+                          onClick={() => toggleStatus(u, !u.enabled)}
+                          disabled={updatingId === u.id}
+                        >
+                          {u.enabled ? "Disable" : "Enable"}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
